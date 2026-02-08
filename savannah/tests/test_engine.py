@@ -2,15 +2,11 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
-from pathlib import Path
-from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from savannah.src.engine import Engine, DIRECTION_DELTAS
-from savannah.src.agent import Agent
+from savannah.src.engine import Engine
 from savannah.src.world import FoodSource
 from savannah.tests.conftest import MockLLMProvider
 

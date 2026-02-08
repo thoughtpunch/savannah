@@ -2,9 +2,8 @@
 
 import json
 import pytest
-from pathlib import Path
 
-from savannah.src.agent import Agent, PROMPT_TEMPLATE
+from savannah.src.agent import Agent
 from savannah.src.world import World
 
 

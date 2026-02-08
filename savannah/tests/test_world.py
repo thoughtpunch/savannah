@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 
 from savannah.src.world import FoodSource, World
 
@@ -516,7 +515,6 @@ class TestWithFixtures:
 
     def test_small_world_tick_update(self, small_world):
         """tick_update should run without errors."""
-        initial_count = len(small_world.food_sources)
         small_world.tick_update(tick=1)
         # Should maintain at least min_sources (3 in test_config)
         assert len(small_world.food_sources) >= 3

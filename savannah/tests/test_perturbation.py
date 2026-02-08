@@ -4,13 +4,11 @@ from __future__ import annotations
 
 import json
 import random
-from pathlib import Path
 
 import pytest
 
 from savannah.src.agent import Agent
 from savannah.src.perturbation import (
-    OUTCOME_INVERSIONS,
     _log_perturbation,
     _perturb_episodic,
     _perturb_semantic,
@@ -147,7 +145,7 @@ class TestEpisodicPerturbation:
         assert result is not None
         # Read the file back
         text = (agent_with_files.memory_dir / "episodic.md").read_text()
-        lines = [l for l in text.split("\n") if l.strip()]
+        lines = [line for line in text.split("\n") if line.strip()]
         # The file should still have 3 lines
         assert len(lines) == 3
         # At least 2 lines should be untouched (only one was perturbed)
@@ -157,7 +155,7 @@ class TestEpisodicPerturbation:
             "Tick 3: Area around (20,25) was empty. No food found.",
         ]
         # Count how many original lines are still present unchanged
-        untouched = sum(1 for l in lines if l in original_lines)
+        untouched = sum(1 for line in lines if line in original_lines)
         assert untouched >= 2  # only one should be changed
 
     def test_empty_episodic_returns_none(self, agent_with_files):

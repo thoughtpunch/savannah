@@ -1,13 +1,9 @@
 """End-to-end integration test: full simulation with mock LLM."""
 
-import asyncio
 import json
 import pytest
-from pathlib import Path
 
 from savannah.src.engine import Engine
-from savannah.src.agent import Agent
-from savannah.src.world import World
 from savannah.tests.conftest import MockLLMProvider
 
 

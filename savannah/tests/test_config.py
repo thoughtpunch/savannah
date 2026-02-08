@@ -1,7 +1,5 @@
 """Tests for YAML config loading and inheritance."""
 
-import pytest
-import yaml
 from pathlib import Path
 
 # Import from run.py — it's at savannah/run.py, need to handle the import path

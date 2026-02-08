@@ -91,7 +91,7 @@ def _perturb_episodic(memory_dir: Path, rng: random.Random) -> dict | None:
     if not path.exists():
         return None
     text = path.read_text()
-    lines = [l for l in text.split("\n") if l.strip()]
+    lines = [line for line in text.split("\n") if line.strip()]
     if not lines:
         return None
 

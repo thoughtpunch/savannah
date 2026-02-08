@@ -1,6 +1,5 @@
 """Comprehensive tests for the action parser."""
 
-import pytest
 from savannah.src.parser import parse_action
 
 
