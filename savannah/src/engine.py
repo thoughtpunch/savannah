@@ -13,7 +13,7 @@ from .agent import Agent
 from .llm import LLMProvider, LLMResponse, get_provider
 from .names import generate_names
 from .parser import parse_action
-from .memory import recall, remember
+from .memory import recall, remember, build_compaction_prompt, parse_compaction_response, apply_compaction
 from .perturbation import maybe_perturb
 from .metrics import extract_metrics
 
@@ -94,6 +94,12 @@ class Engine:
 
             # 6. World tick (food spawning, decay, etc.)
             self.world.tick_update(self.tick)
+
+            # 6b. Process pending compactions (requires async LLM call)
+            for agent in alive:
+                if getattr(agent, '_pending_compaction', False):
+                    await self._do_compaction(agent)
+                    agent._pending_compaction = False
 
             # 7. Metrics
             if self.tick % self.config["metrics"].get("extract_every", 1) == 0:
@@ -212,9 +218,8 @@ class Engine:
             agent.drain(agent_cfg.get("energy_per_remember", 1))
 
         elif action_name == "compact":
-            # Compaction is a placeholder — needs LLM call to summarize
-            # For now, just charge energy
             agent.drain(agent_cfg.get("energy_per_compact", 2))
+            agent._pending_compaction = True
 
         elif action_name == "signal":
             msg = args or ""
@@ -291,6 +296,18 @@ class Engine:
                 if dx <= 1 and dy <= 1:
                     return agent
         return None
+
+    async def _do_compaction(self, agent: Agent) -> None:
+        """Run memory compaction for an agent via LLM."""
+        prompt = build_compaction_prompt(agent.name, agent.memory_dir, self.tick)
+        response = await self.provider.invoke(
+            prompt, self.config["llm"].get("compaction_model", "sonnet")
+        )
+        sections = parse_compaction_response(response.text)
+        if sections:
+            apply_compaction(agent.memory_dir, sections, self.data_dir)
+        else:
+            logger.warning("Compaction parse failed for %s", agent.name)
 
     def _save_snapshot(self) -> None:
         """Write full world state to tick snapshot file."""

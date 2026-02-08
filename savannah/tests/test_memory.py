@@ -1,7 +1,6 @@
 """Tests for the memory system: recall, remember, compaction helpers."""
 
 import pytest
-from pathlib import Path
 
 from savannah.src.memory import (
     recall,
@@ -9,6 +8,9 @@ from savannah.src.memory import (
     get_episodic_entries,
     read_memory_file,
     write_memory_file,
+    build_compaction_prompt,
+    parse_compaction_response,
+    apply_compaction,
     _tokenize,
     _bm25_score,
     _load_all_chunks,
@@ -200,3 +202,142 @@ class TestLoadAllChunks:
     def test_empty_dir(self, empty_memory_dir):
         chunks = _load_all_chunks(empty_memory_dir)
         assert chunks == []
+
+
+class TestBuildCompactionPrompt:
+    def test_contains_agent_name(self, memory_dir):
+        prompt = build_compaction_prompt("Test-Creek", memory_dir, tick=150)
+        assert "Test-Creek" in prompt
+
+    def test_contains_episodic_entries(self, memory_dir):
+        prompt = build_compaction_prompt("Test-Creek", memory_dir, tick=150)
+        assert "Tick 100" in prompt
+        assert "Tick 140" in prompt
+
+    def test_contains_semantic_content(self, memory_dir):
+        prompt = build_compaction_prompt("Test-Creek", memory_dir, tick=150)
+        assert "plentiful" in prompt.lower() or "food" in prompt.lower()
+
+    def test_no_contamination_words(self, memory_dir):
+        prompt = build_compaction_prompt("Test-Creek", memory_dir, tick=150)
+        contamination = ["conscious", "alive", "feel", "experience", "survive", "sentient"]
+        prompt_lower = prompt.lower()
+        for word in contamination:
+            assert word not in prompt_lower, f"Contamination word found: {word}"
+
+    def test_contains_format_instructions(self, memory_dir):
+        prompt = build_compaction_prompt("Test-Creek", memory_dir, tick=150)
+        assert "EPISODIC:" in prompt
+        assert "SEMANTIC:" in prompt
+        assert "SELF:" in prompt
+        assert "SOCIAL:" in prompt
+
+    def test_contains_tick(self, memory_dir):
+        prompt = build_compaction_prompt("Test-Creek", memory_dir, tick=999)
+        assert "999" in prompt
+
+
+class TestParseCompactionResponse:
+    def test_valid_response(self):
+        text = (
+            "EPISODIC:\n"
+            "Tick 100: Found food.\n"
+            "Tick 120: Found more food.\n"
+            "SEMANTIC:\n"
+            "Food is common in the south.\n"
+            "SELF:\n"
+            "I am a capable forager.\n"
+            "SOCIAL:\n"
+            "Swift-Stone is unreliable."
+        )
+        result = parse_compaction_response(text)
+        assert result is not None
+        assert "episodic" in result
+        assert "semantic" in result
+        assert "self" in result
+        assert "social" in result
+        assert "Found food" in result["episodic"]
+        assert "south" in result["semantic"]
+        assert "forager" in result["self"]
+        assert "unreliable" in result["social"]
+
+    def test_missing_section_returns_none(self):
+        text = (
+            "EPISODIC:\nSome episodes.\n"
+            "SEMANTIC:\nSome knowledge.\n"
+            "SELF:\nSome assessment.\n"
+            # SOCIAL section missing
+        )
+        result = parse_compaction_response(text)
+        assert result is None
+
+    def test_empty_input_returns_none(self):
+        assert parse_compaction_response("") is None
+        assert parse_compaction_response(None) is None
+
+    def test_extra_text_before_sections(self):
+        text = (
+            "Here is my compacted memory:\n\n"
+            "EPISODIC:\nTick 100: Found food.\n"
+            "SEMANTIC:\nFood in south.\n"
+            "SELF:\nI am Test-Creek.\n"
+            "SOCIAL:\nSwift-Stone is unreliable."
+        )
+        result = parse_compaction_response(text)
+        assert result is not None
+        assert "Found food" in result["episodic"]
+
+
+class TestApplyCompaction:
+    def test_writes_all_files(self, memory_dir):
+        sections = {
+            "episodic": "Compacted episode 1.\nCompacted episode 2.",
+            "semantic": "New general knowledge.",
+            "self": "Updated self.",
+            "social": "Updated social.",
+        }
+        apply_compaction(memory_dir, sections)
+
+        assert (memory_dir / "episodic.md").read_text() == sections["episodic"]
+        assert (memory_dir / "semantic.md").read_text() == sections["semantic"]
+        assert (memory_dir / "self.md").read_text() == sections["self"]
+        assert (memory_dir / "social.md").read_text() == sections["social"]
+
+    def test_logs_to_compaction_jsonl(self, memory_dir, tmp_path):
+        data_dir = tmp_path / "data"
+        data_dir.mkdir()
+        sections = {
+            "episodic": "New episodes.",
+            "semantic": "New knowledge.",
+            "self": "New self.",
+            "social": "New social.",
+        }
+        apply_compaction(memory_dir, sections, data_dir=data_dir)
+
+        log_path = data_dir / "logs" / "compaction.jsonl"
+        assert log_path.exists()
+        import json
+        record = json.loads(log_path.read_text().strip())
+        assert "episodic" in record
+        assert "before" in record["episodic"]
+        assert "after" in record["episodic"]
+        assert record["episodic"]["after"] == "New episodes."
+
+    def test_before_state_captured(self, memory_dir, tmp_path):
+        data_dir = tmp_path / "data"
+        data_dir.mkdir()
+        # Read the original content before compaction
+        original_self = (memory_dir / "self.md").read_text().strip()
+        original_social = (memory_dir / "social.md").read_text().strip()
+
+        sections = {
+            "episodic": "Compacted.",
+            "semantic": "Compacted.",
+            "self": "Compacted.",
+            "social": "Compacted.",
+        }
+        result = apply_compaction(memory_dir, sections, data_dir=data_dir)
+
+        assert result["self"]["before"] == original_self
+        assert result["social"]["before"] == original_social
+        assert result["self"]["after"] == "Compacted."

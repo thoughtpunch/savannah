@@ -11,7 +11,7 @@ from pathlib import Path
 
 import yaml
 
-from src.engine import Engine
+from savannah.src.engine import Engine
 
 logging.basicConfig(
     level=logging.INFO,
@@ -62,9 +62,32 @@ def main():
     parser.add_argument("--replications", type=int, default=5, help="Replications per condition")
     parser.add_argument("--resume", type=Path, help="Resume interrupted run from data dir")
     parser.add_argument("--replay", type=Path, help="Replay a completed run")
+    parser.add_argument("--inspect", type=Path, help="Inspect a completed run's data directory")
+    parser.add_argument("--tick", type=int, default=0, help="Tick to inspect (with --inspect)")
+    parser.add_argument("--agent", type=str, help="Agent name to filter (with --inspect or --replay)")
+    parser.add_argument("--tick-range", type=str, help="Tick range for replay (e.g., 100-200)")
     parser.add_argument("--viz", action="store_true", help="Launch visualization server")
 
     args = parser.parse_args()
+
+    # Handle --replay mode
+    if args.replay:
+        from savannah.src.replay import replay
+
+        tick_range = None
+        if args.tick_range:
+            parts = args.tick_range.split("-")
+            tick_range = (int(parts[0]), int(parts[1]))
+
+        replay(args.replay, agent_filter=args.agent, tick_range=tick_range)
+        sys.exit(0)
+
+    # Handle --inspect mode
+    if args.inspect:
+        from savannah.src.inspect_cmd import inspect
+
+        inspect(args.inspect, args.tick, args.agent)
+        sys.exit(0)
 
     config = load_config(args.config)
 
