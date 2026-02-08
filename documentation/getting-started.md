@@ -2,28 +2,51 @@
 
 How to set up and run your first ILET simulation.
 
+## Quick Start
+
+The fastest path from clone to running simulation:
+
+```bash
+git clone <repo-url>
+cd savannah
+python -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
+python -m savannah.run --live --mock
+# Open http://localhost:8765 in browser
+```
+
+This launches a real-time browser visualization with a mock LLM (no API calls needed). Select a preset experiment in the browser lobby to begin.
+
 ## Prerequisites
 
 | Requirement | Version | Purpose |
 |-------------|---------|---------|
 | Python | 3.12+ | Simulation engine |
-| pyyaml | any | YAML config parsing |
-| Claude Code CLI | 1.x+ | Default LLM provider (`claude -p`) |
-| Beads (`bd`) | any | Issue tracking for Ralph workflow |
+| Claude Code CLI | 1.x+ | Default LLM provider (`claude -p`) -- only needed for real (non-mock) runs |
+| Beads (`bd`) | any | Issue tracking for Ralph workflow (optional) |
 
-### Install Python dependencies
+### Install with pip (recommended)
 
-```bash
-pip install pyyaml
-```
-
-For analysis (optional, not needed for running simulations):
+The project uses `pyproject.toml` for dependency management. All core dependencies (pyyaml, websockets) are installed automatically:
 
 ```bash
-pip install pandas scipy matplotlib
+python -m venv .venv && source .venv/bin/activate
+pip install -e .
 ```
 
-### Install Claude Code CLI
+For development (includes pytest, ruff):
+
+```bash
+pip install -e ".[dev]"
+```
+
+For analysis (pandas, scipy, matplotlib):
+
+```bash
+pip install -e ".[analysis]"
+```
+
+### Install Claude Code CLI (for real LLM runs only)
 
 ```bash
 npm install -g @anthropic-ai/claude-code
@@ -31,7 +54,9 @@ npm install -g @anthropic-ai/claude-code
 
 Verify: `claude --version` should return a version number. You need an active Anthropic account. For the default `claude_code` provider, a Pro Max subscription eliminates per-inference costs.
 
-### Install Beads
+This is **not** needed if you are using `--mock` mode for testing or demonstration.
+
+### Install Beads (optional)
 
 Beads (`bd`) is the issue tracker used by the Ralph autonomous agent loop. See the Beads repository for installation instructions. Verify: `bd --help` should show the beads help text.
 
@@ -45,14 +70,25 @@ After cloning the repository:
 savannah/
 ├── CLAUDE.md                  # AI assistant guide
 ├── IMPLEMENTATION_GUIDE.md    # Full specification
+├── pyproject.toml             # Package config (pip install -e .)
 ├── savannah/
 │   ├── run.py                 # CLI entrypoint
 │   ├── config/
 │   │   ├── default.yaml       # Base configuration
-│   │   └── experiments/       # Experiment-specific overrides
-│   ├── src/                   # Simulation engine source
+│   │   └── experiments/       # Preset experiment configs
+│   │       ├── baseline.yaml
+│   │       ├── perturbation.yaml
+│   │       ├── social.yaml
+│   │       └── full_pressure.yaml
+│   ├── src/
+│   │   ├── engine.py          # Simulation loop
+│   │   ├── live_server.py     # WebSocket server for --live mode
+│   │   └── ...                # Other engine modules
+│   ├── viz/
+│   │   ├── live.html          # Real-time browser UI (served by live_server.py)
+│   │   └── index.html         # Static replay viewer
 │   ├── data/                  # Runtime output (gitignored)
-│   ├── viz/                   # HTML replay viewer
+│   ├── tests/                 # Test suite
 │   └── analysis/              # Statistical analysis scripts
 ├── scripts/
 │   └── ralph/                 # Autonomous agent loop
@@ -61,17 +97,31 @@ savannah/
 
 ## Running Your First Test
 
-The quickest way to verify the system works:
+### Option A: Live visualization with mock LLM (recommended for first run)
 
 ```bash
-python savannah/run.py --config savannah/config/experiments/baseline.yaml --ticks 20
+python -m savannah.run --live --mock
+```
+
+Open `http://localhost:8765` in your browser. You will see a lobby screen with four preset experiments: Baseline, Perturbation, Social Pressure, and Full Pressure. Click any preset card to start. The `--mock` flag uses an instant mock LLM that requires no API calls, so the simulation runs in seconds.
+
+To skip the lobby and start immediately with a specific config:
+
+```bash
+python -m savannah.run --live --mock --config savannah/config/experiments/baseline.yaml --ticks 100
+```
+
+### Option B: Headless CLI run (with real LLM)
+
+```bash
+python -m savannah.run --config savannah/config/experiments/baseline.yaml --ticks 20
 ```
 
 This runs:
 - The baseline experiment (no perturbation, no social pressure)
 - 20 ticks only (a few minutes wall time)
 - Default 12 agents on a 30x30 grid
-- Output goes to `savannah/data/exp_{timestamp}/`
+- Output goes to `data/exp_{timestamp}/`
 
 Expected output:
 - Log messages showing tick progression
@@ -82,11 +132,13 @@ Expected output:
 
 ### Common First-Run Issues
 
-**`claude` command not found**: Install Claude Code CLI with `npm install -g @anthropic-ai/claude-code`.
+**`claude` command not found**: Install Claude Code CLI with `npm install -g @anthropic-ai/claude-code`. Not needed for `--mock` mode.
 
-**Timeout errors**: If agents are timing out, check your network connection and Anthropic account status. The default timeout is 30 seconds per inference call.
+**Timeout errors**: If agents are timing out, check your network connection and Anthropic account status. The default timeout is 30 seconds per inference call. Use `--mock` for instant responses without API calls.
 
 **Parse failures**: Some parse failures are expected (agents produce variable output formats). The system falls back to `rest` on parse failure. A parse rate above 95% is normal.
+
+**Port conflict**: If port 8765 is in use, specify a different port: `--port 9000`.
 
 ## Running a Perturbation Experiment
 
@@ -116,17 +168,35 @@ python savannah/run.py --factorial --axes perturbation,session_mode --replicatio
 
 ## Visualization
 
-After a run completes, open the replay viewer:
+### Real-time (live mode)
+
+Use `--live` to watch the simulation in your browser as it runs:
 
 ```bash
-# Option 1: Serve the viz directory and load data manually
-cd savannah/viz && python -m http.server 8000
-
-# Option 2: Use the --viz flag (if implemented)
-python savannah/run.py --replay savannah/data/exp_{timestamp}/ --viz
+python -m savannah.run --live --config savannah/config/experiments/baseline.yaml
 ```
 
-The viewer loads tick snapshot JSON files and renders the grid with agents, food sources, and an interactive timeline scrubber.
+Open `http://localhost:8765`. The browser UI shows a thought stream, minimap, sparkline charts, agent list, and event toasts in real time. See [Live Visualization](live-visualization.md) for the full guide.
+
+### Replay past runs
+
+From the live server lobby, click "View Past Runs" to browse and replay completed experiments with a timeline slider.
+
+You can also replay from the CLI:
+
+```bash
+python -m savannah.run --replay data/exp_{timestamp}/
+```
+
+### Static replay viewer
+
+For offline viewing without the live server:
+
+```bash
+cd savannah/viz && python -m http.server 8000
+```
+
+The static viewer loads tick snapshot JSON files and renders the grid with agents, food sources, and an interactive timeline scrubber.
 
 ## Examining Results
 
@@ -150,6 +220,7 @@ When perturbation is enabled, `logs/perturbations.jsonl` records every corruptio
 
 ## Next Steps
 
+- Read the [Live Visualization Guide](live-visualization.md) for the full browser UI reference
 - Read the [Configuration Guide](configuration.md) to understand all tunable parameters
 - Read [Ralph & Beads Workflow](ralph-workflow.md) to use the autonomous development loop
 - Read [Experimental Design](experimental-design.md) to understand the factorial structure
