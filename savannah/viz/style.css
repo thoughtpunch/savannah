@@ -1,0 +1,128 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    background: #1a1a1a;
+    color: #e0e0e0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+header {
+    padding: 12px 20px;
+    background: #252525;
+    border-bottom: 1px solid #333;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+header h1 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #22c55e;
+}
+
+#status {
+    font-size: 12px;
+    color: #888;
+}
+
+main {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    grid-template-rows: 1fr auto;
+    flex: 1;
+    gap: 0;
+}
+
+#grid-container {
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#grid {
+    border: 1px solid #333;
+    cursor: crosshair;
+}
+
+#controls {
+    grid-column: 1 / -1;
+    padding: 12px 20px;
+    background: #252525;
+    border-top: 1px solid #333;
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+#timeline {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex: 1;
+}
+
+#tick-slider {
+    flex: 1;
+    accent-color: #22c55e;
+}
+
+#tick-label {
+    font-size: 12px;
+    min-width: 80px;
+}
+
+#play-btn {
+    background: #22c55e;
+    color: #1a1a1a;
+    border: none;
+    padding: 4px 12px;
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+#play-btn:hover {
+    background: #16a34a;
+}
+
+#options {
+    display: flex;
+    gap: 12px;
+    font-size: 12px;
+}
+
+#options label {
+    cursor: pointer;
+}
+
+#inspector {
+    padding: 20px;
+    background: #222;
+    border-left: 1px solid #333;
+    overflow-y: auto;
+}
+
+#inspector h2 {
+    font-size: 14px;
+    margin-bottom: 12px;
+    color: #22c55e;
+}
+
+#inspector-content {
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+#inspector-content div {
+    margin-bottom: 4px;
+}

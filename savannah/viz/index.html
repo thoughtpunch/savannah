@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ILET — Savannah Viewer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>Savannah Viewer</h1>
+        <div id="status">Load an experiment to begin</div>
+    </header>
+
+    <main>
+        <div id="grid-container">
+            <canvas id="grid" width="600" height="600"></canvas>
+        </div>
+
+        <div id="controls">
+            <div id="timeline">
+                <button id="play-btn">Play</button>
+                <input type="range" id="tick-slider" min="0" max="0" value="0">
+                <span id="tick-label">Tick 0</span>
+            </div>
+
+            <div id="options">
+                <label><input type="checkbox" id="show-trails"> Trails</label>
+                <label><input type="checkbox" id="show-names"> Names</label>
+            </div>
+        </div>
+
+        <div id="inspector">
+            <h2 id="inspector-title">Click an agent to inspect</h2>
+            <div id="inspector-content"></div>
+        </div>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
