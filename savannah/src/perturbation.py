@@ -38,21 +38,21 @@ def maybe_perturb(
     config: dict,
     data_dir: Path,
     rng: random.Random | None = None,
-) -> bool:
-    """Roll for perturbation and apply if triggered. Returns True if perturbed."""
+) -> dict | None:
+    """Roll for perturbation and apply if triggered. Returns event dict or None."""
     if not config.get("enabled", False):
-        return False
+        return None
     if tick < config.get("start_tick", 0):
-        return False
+        return None
 
     rng = rng or random.Random()
     if rng.random() > config.get("rate", 0.05):
-        return False
+        return None
 
     # Select perturbation type by weighted random
     ptype = _weighted_choice(config.get("types", {}), rng)
     if not ptype:
-        return False
+        return None
 
     # Apply perturbation
     result = _apply_perturbation(agent, ptype, tick, rng)
@@ -60,9 +60,16 @@ def maybe_perturb(
         _log_perturbation(agent, tick, result, data_dir)
         agent.times_perturbed += 1
         agent.last_perturbation_tick = tick
-        return True
+        return {
+            "tick": tick,
+            "agent": agent.name,
+            "type": result.get("type", ptype),
+            "transform": result.get("transform", ""),
+            "original": result.get("original", ""),
+            "corrupted": result.get("corrupted", ""),
+        }
 
-    return False
+    return None
 
 
 # ── Perturbation transforms ────────────────────────────────────────

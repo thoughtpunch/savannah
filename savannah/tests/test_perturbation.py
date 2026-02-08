@@ -60,15 +60,15 @@ def agent_with_files(tmp_path):
 
 
 class TestMaybePerturbDisabled:
-    def test_returns_false_when_disabled(self, agent_with_files, tmp_path):
+    def test_returns_none_when_disabled(self, agent_with_files, tmp_path):
         config = {"enabled": False, "rate": 1.0, "start_tick": 0}
         result = maybe_perturb(agent_with_files, tick=5, config=config, data_dir=tmp_path)
-        assert result is False
+        assert result is None
 
-    def test_returns_false_before_start_tick(self, agent_with_files, tmp_path):
+    def test_returns_none_before_start_tick(self, agent_with_files, tmp_path):
         config = {"enabled": True, "rate": 1.0, "start_tick": 10}
         result = maybe_perturb(agent_with_files, tick=5, config=config, data_dir=tmp_path)
-        assert result is False
+        assert result is None
 
 
 # ── maybe_perturb: enabled with controlled RNG ───────────────────
@@ -86,7 +86,10 @@ class TestMaybePerturbEnabled:
         }
         rng = random.Random(42)
         result = maybe_perturb(agent_with_files, tick=5, config=config, data_dir=tmp_path, rng=rng)
-        assert result is True
+        assert result is not None
+        assert isinstance(result, dict)
+        assert result["agent"] == agent_with_files.name
+        assert result["tick"] == 5
 
     def test_perturbation_skipped_when_rng_above_rate(self, agent_with_files, tmp_path):
         """Rate=0.0 means rng.random() will always be > rate."""
@@ -98,7 +101,7 @@ class TestMaybePerturbEnabled:
         }
         rng = random.Random(42)
         result = maybe_perturb(agent_with_files, tick=5, config=config, data_dir=tmp_path, rng=rng)
-        assert result is False
+        assert result is None
 
     def test_times_perturbed_increments(self, agent_with_files, tmp_path):
         config = {

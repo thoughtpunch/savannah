@@ -6,6 +6,7 @@ import asyncio
 import json
 import logging
 import random
+import time
 from pathlib import Path
 
 from .world import World
@@ -30,7 +31,8 @@ DIRECTION_DELTAS = {
 class Engine:
     """Runs the simulation: world + agents + LLM inference per tick."""
 
-    def __init__(self, config: dict, data_dir: Path, provider: LLMProvider | None = None):
+    def __init__(self, config: dict, data_dir: Path, provider: LLMProvider | None = None,
+                 live_server=None):
         self.config = config
         self.data_dir = data_dir
         self.tick = 0
@@ -41,6 +43,7 @@ class Engine:
             config["llm"].get("max_concurrent_agents", 6)
         )
         self._rng = random.Random(config["simulation"]["seed"])
+        self.live_server = live_server
 
     # ── Lifecycle ───────────────────────────────────────────────
 
@@ -52,6 +55,11 @@ class Engine:
         (self.data_dir / "logs").mkdir(exist_ok=True)
         (self.data_dir / "analysis").mkdir(exist_ok=True)
 
+        # Save resolved config for history/replay
+        import yaml
+        config_path = self.data_dir / "config.yaml"
+        config_path.write_text(yaml.dump(self.config, default_flow_style=False))
+
         self.world.initialize()
         self._spawn_agents()
         self._save_snapshot()
@@ -60,6 +68,7 @@ class Engine:
         """Main tick loop."""
         max_ticks = self.config["simulation"]["ticks"]
         delay_ms = self.config["simulation"].get("tick_delay_ms", 0)
+        live = self.live_server
 
         while self.tick < max_ticks:
             self.tick += 1
@@ -70,12 +79,36 @@ class Engine:
 
             logger.info("Tick %d / %d  (%d alive)", self.tick, max_ticks, len(alive))
 
+            # Live: handle pause/resume/stop commands
+            if live:
+                await live.process_commands()
+                if live.paused:
+                    await live.handle_pause_loop()
+                    if live.step_requested:
+                        live.step_requested = False
+                    # Re-check for stop after pause
+                    await live.process_commands()
+
             # 1. Perturbation (before agent sees state)
+            perturbation_events = []
             for agent in alive:
-                maybe_perturb(agent, self.tick, self.config["perturbation"], self.data_dir)
+                result = maybe_perturb(agent, self.tick, self.config["perturbation"], self.data_dir)
+                if result:
+                    perturbation_events.append(result)
+
+            # Live: broadcast "thinking" state before LLM dispatch
+            if live:
+                await live.broadcast({
+                    "type": "thinking",
+                    "tick": self.tick,
+                    "max_ticks": max_ticks,
+                    "agents": [{"name": a.name, "alive": a.alive} for a in self.agents],
+                })
 
             # 2. Build prompts + dispatch to LLM in parallel
+            t0 = time.monotonic()
             responses = await self._dispatch_all(alive)
+            inference_ms = int((time.monotonic() - t0) * 1000)
 
             # 3. Parse actions, apply to world
             parsed_actions = []
@@ -83,6 +116,8 @@ class Engine:
                 action = parse_action(response_text)
                 self._apply_action(agent, action)
                 parsed_actions.append(action)
+                # Store for live broadcast
+                agent._last_action = action
 
             # 4. Passive energy drain
             for agent in alive:
@@ -113,12 +148,28 @@ class Engine:
             if self.tick % self.config["simulation"].get("snapshot_every", 100) == 0:
                 self._save_snapshot()
 
-            # 10. Optional delay
-            if delay_ms > 0:
-                await asyncio.sleep(delay_ms / 1000)
+            # Live: broadcast full tick state
+            if live:
+                tick_state = self._build_live_state(max_ticks, inference_ms, perturbation_events)
+                await live.broadcast(tick_state)
+
+            # 10. Optional delay (live server overrides config delay)
+            effective_delay = live.tick_delay_ms if live else delay_ms
+            if effective_delay > 0:
+                await asyncio.sleep(effective_delay / 1000)
 
         # Final snapshot
         self._save_snapshot()
+
+        if live:
+            await live.broadcast({
+                "type": "complete",
+                "tick": self.tick,
+                "max_ticks": max_ticks,
+                "alive": len(self.alive_agents),
+                "total": len(self.agents),
+            })
+
         logger.info("Simulation complete: %d ticks, %d/%d agents alive",
                      self.tick, len(self.alive_agents), len(self.agents))
 
@@ -308,6 +359,36 @@ class Engine:
             apply_compaction(agent.memory_dir, sections, self.data_dir)
         else:
             logger.warning("Compaction parse failed for %s", agent.name)
+
+    def _build_live_state(self, max_ticks: int, inference_ms: int,
+                          perturbation_events: list) -> dict:
+        """Build the full tick state for live broadcast."""
+        agents_data = []
+        for agent in self.agents:
+            action = getattr(agent, '_last_action', None)
+            agent_dict = agent.to_dict()
+            if action:
+                agent_dict["action"] = action.get("action", "rest")
+                args = action.get("args", "")
+                if args:
+                    agent_dict["action"] += f"({args})"
+                agent_dict["reasoning"] = action.get("reasoning", "")
+                agent_dict["working"] = action.get("working", "")
+            else:
+                agent_dict["action"] = ""
+                agent_dict["reasoning"] = ""
+                agent_dict["working"] = ""
+            agents_data.append(agent_dict)
+
+        return {
+            "type": "tick",
+            "tick": self.tick,
+            "max_ticks": max_ticks,
+            "inference_time_ms": inference_ms,
+            "world": self.world.to_dict(),
+            "agents": agents_data,
+            "perturbations": perturbation_events,
+        }
 
     def _save_snapshot(self) -> None:
         """Write full world state to tick snapshot file."""

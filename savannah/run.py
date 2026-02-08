@@ -46,10 +46,97 @@ def _deep_merge(base: dict, override: dict) -> dict:
     return result
 
 
+async def _run_live(args):
+    """Run the live server with interactive simulation control."""
+    from savannah.src.live_server import LiveServer
+
+    port = args.port or 8765
+    server = LiveServer(host="localhost", port=port)
+    await server.start()
+
+    print(f"\n  Open http://localhost:{port} to view\n")
+
+    if args.config:
+        # Start simulation immediately with provided config
+        config = load_config(args.config)
+        if args.ticks:
+            config["simulation"]["ticks"] = args.ticks
+        if args.seed:
+            config["simulation"]["seed"] = args.seed
+
+        provider = None
+        if args.mock:
+            from savannah.tests.conftest import MockLLMProvider
+            provider = MockLLMProvider()
+            logger.info("Using mock LLM provider (no API calls)")
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        data_dir = Path("data") / f"exp_{timestamp}"
+
+        engine = Engine(config, data_dir, provider=provider, live_server=server)
+        engine.setup()
+
+        await server.broadcast({"type": "status", "state": "running"})
+
+        try:
+            await engine.run()
+        except asyncio.CancelledError:
+            logger.info("Simulation stopped by user")
+            await server.broadcast({"type": "status", "state": "stopped"})
+    else:
+        # Lobby mode — wait for start command from browser
+        await server.broadcast({"type": "status", "state": "lobby"})
+        logger.info("Lobby mode — waiting for start command from browser")
+
+        while True:
+            cmd = await server.wait_for_command(timeout=1.0)
+            if cmd and cmd.get("action") == "start":
+                cmd_config = cmd.get("config")
+                preset = cmd.get("preset")
+
+                if preset:
+                    config_path = Path("savannah/config/experiments") / f"{preset}.yaml"
+                    if config_path.exists():
+                        config = load_config(config_path)
+                    else:
+                        await server.broadcast({"type": "error", "message": f"Unknown preset: {preset}"})
+                        continue
+                elif cmd_config:
+                    config = cmd_config
+                else:
+                    config = load_config(Path("savannah/config/default.yaml"))
+
+                # Apply overrides from command
+                if cmd.get("ticks"):
+                    config["simulation"]["ticks"] = cmd["ticks"]
+                if cmd.get("mock"):
+                    config["simulation"]["ticks"] = config["simulation"].get("ticks", 500)
+
+                provider = None
+                if cmd.get("mock"):
+                    from savannah.tests.conftest import MockLLMProvider
+                    provider = MockLLMProvider()
+
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                data_dir = Path("data") / f"exp_{timestamp}"
+
+                engine = Engine(config, data_dir, provider=provider, live_server=server)
+                engine.setup()
+
+                await server.broadcast({"type": "status", "state": "running"})
+
+                try:
+                    await engine.run()
+                except asyncio.CancelledError:
+                    logger.info("Simulation stopped")
+
+                await server.broadcast({"type": "status", "state": "lobby"})
+
+
 def main():
     parser = argparse.ArgumentParser(description="ILET — Integrity Layer Emergence Testbed")
     parser.add_argument(
-        "--config", type=Path, default=Path("config/default.yaml"),
+        "--config", type=Path, default=None,
         help="Path to experiment config YAML",
     )
     parser.add_argument("--ticks", type=int, help="Override tick count")
@@ -66,7 +153,9 @@ def main():
     parser.add_argument("--tick", type=int, default=0, help="Tick to inspect (with --inspect)")
     parser.add_argument("--agent", type=str, help="Agent name to filter (with --inspect or --replay)")
     parser.add_argument("--tick-range", type=str, help="Tick range for replay (e.g., 100-200)")
-    parser.add_argument("--viz", action="store_true", help="Launch visualization server")
+    parser.add_argument("--live", action="store_true", help="Real-time browser visualization")
+    parser.add_argument("--port", type=int, help="Port for --live server (default 8765)")
+    parser.add_argument("--mock", action="store_true", help="Use mock LLM (instant, no API calls)")
 
     args = parser.parse_args()
 
@@ -89,6 +178,15 @@ def main():
         inspect(args.inspect, args.tick, args.agent)
         sys.exit(0)
 
+    # Handle --live mode
+    if args.live:
+        asyncio.run(_run_live(args))
+        sys.exit(0)
+
+    # Standard (non-live) mode requires config
+    if not args.config:
+        args.config = Path("savannah/config/default.yaml")
+
     config = load_config(args.config)
 
     if args.ticks:
@@ -102,12 +200,17 @@ def main():
 
     if args.factorial:
         logger.info("Factorial mode: axes=%s, replications=%d", args.axes, args.replications)
-        # TODO: implement factorial runner
         logger.error("Factorial mode not yet implemented")
         sys.exit(1)
 
+    provider = None
+    if args.mock:
+        from savannah.tests.conftest import MockLLMProvider
+        provider = MockLLMProvider()
+        logger.info("Using mock LLM provider (no API calls)")
+
     logger.info("Starting experiment: %s", data_dir)
-    engine = Engine(config, data_dir)
+    engine = Engine(config, data_dir, provider=provider)
     engine.setup()
     asyncio.run(engine.run())
     logger.info("Experiment complete: %s", data_dir)
