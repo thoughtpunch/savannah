@@ -9,11 +9,11 @@ from __future__ import annotations
 import random
 
 ADJECTIVES = [
-    "Bright", "Swift", "Calm", "Dark", "Deep", "Dry", "Far", "Fast",
-    "Flat", "Gold", "Gray", "Half", "Hard", "High", "Kind", "Last",
-    "Late", "Lean", "Long", "Lost", "Low", "Near", "New", "Old",
-    "Pale", "Red", "Rich", "Rough", "Sharp", "Slow", "Small", "Soft",
-    "Still", "Tall", "Thin", "True", "Warm", "West", "Wide", "Wild",
+    "Bright", "Swift", "Broad", "Dark", "Deep", "Dry", "Far", "Fast",
+    "Flat", "Gold", "Gray", "Half", "Hard", "High", "Dense", "Last",
+    "Late", "Lean", "Long", "Blank", "Low", "Near", "New", "Old",
+    "Pale", "Red", "Round", "Rough", "Sharp", "Slow", "Small", "Soft",
+    "Still", "Tall", "Thin", "Steep", "Warm", "West", "Wide", "North",
 ]
 
 NOUNS = [

@@ -7,24 +7,29 @@ import re
 
 logger = logging.getLogger(__name__)
 
-# Supported actions and their argument patterns
-ACTION_PATTERNS = {
-    "move": re.compile(r"move\s*\(\s*(n|s|e|w)\s*\)", re.IGNORECASE),
-    "eat": re.compile(r"eat\b", re.IGNORECASE),
-    "recall": re.compile(r'recall\s*\(\s*"([^"]+)"\s*\)', re.IGNORECASE),
-    "remember": re.compile(r'remember\s*\(\s*"([^"]+)"\s*\)', re.IGNORECASE),
-    "compact": re.compile(r"compact\b", re.IGNORECASE),
-    "signal": re.compile(r'signal\s*\(\s*"([^"]+)"\s*\)', re.IGNORECASE),
-    "observe": re.compile(r"observe\b", re.IGNORECASE),
-    "attack": re.compile(r"attack\s*\(\s*([a-zA-Z][\w-]*)\s*\)", re.IGNORECASE),
-    "flee": re.compile(r"flee\s*\(\s*(n|s|e|w)\s*\)", re.IGNORECASE),
-    "rest": re.compile(r"rest\b", re.IGNORECASE),
-}
+# Strip markdown backticks and surrounding whitespace from action text
+_BACKTICK_RE = re.compile(r"`+")
 
-# Extract the three response fields
-ACTION_LINE = re.compile(r"ACTION:\s*(.+)", re.IGNORECASE)
-WORKING_LINE = re.compile(r"WORKING:\s*(.+)", re.IGNORECASE | re.DOTALL)
-REASONING_LINE = re.compile(r"REASONING:\s*(.+)", re.IGNORECASE | re.DOTALL)
+# Supported actions and their argument patterns
+# Order matters: more specific patterns first to avoid partial matches
+ACTION_PATTERNS = [
+    ("move", re.compile(r"move\s*\(\s*(n|s|e|w)\s*\)", re.IGNORECASE)),
+    ("flee", re.compile(r"flee\s*\(\s*(n|s|e|w)\s*\)", re.IGNORECASE)),
+    ("eat", re.compile(r"\beat\b", re.IGNORECASE)),
+    ("recall", re.compile(r"""recall\s*\(\s*["']([^"']+)["']\s*\)""", re.IGNORECASE)),
+    ("remember", re.compile(r"""remember\s*\(\s*["']([^"']+)["']\s*\)""", re.IGNORECASE)),
+    ("signal", re.compile(r"""signal\s*\(\s*["']([^"']+)["']\s*\)""", re.IGNORECASE)),
+    ("attack", re.compile(r"attack\s*\(\s*([a-zA-Z][\w-]*)\s*\)", re.IGNORECASE)),
+    ("compact", re.compile(r"\bcompact\b", re.IGNORECASE)),
+    ("observe", re.compile(r"\bobserve\b", re.IGNORECASE)),
+    ("rest", re.compile(r"\brest\b", re.IGNORECASE)),
+]
+
+# Section extraction: match label then capture to next label or end
+_SECTION_RE = re.compile(
+    r"^(ACTION|WORKING|REASONING)\s*:\s*",
+    re.IGNORECASE | re.MULTILINE,
+)
 
 
 def parse_action(raw_response: str) -> dict:
@@ -43,33 +48,25 @@ def parse_action(raw_response: str) -> dict:
         logger.warning("Empty or non-string response, defaulting to rest")
         return _default_rest("Empty response")
 
-    # Extract ACTION line
-    action_match = ACTION_LINE.search(raw_response)
-    if not action_match:
+    # Split into labeled sections
+    sections = _extract_sections(raw_response)
+
+    action_text = sections.get("action", "").strip()
+    working = sections.get("working", "").strip()
+    reasoning = sections.get("reasoning", "").strip()
+
+    if not action_text:
         logger.warning("No ACTION: line found, defaulting to rest")
         return _default_rest(raw_response)
 
-    action_text = action_match.group(1).strip()
+    # Strip markdown backticks that LLMs sometimes add
+    action_text = _BACKTICK_RE.sub("", action_text).strip()
 
-    # Extract WORKING and REASONING
-    working = ""
-    working_match = WORKING_LINE.search(raw_response)
-    if working_match:
-        working = working_match.group(1).strip()
-        # Trim at REASONING if it bleeds in
-        if "REASONING:" in working:
-            working = working[: working.index("REASONING:")].strip()
-
-    reasoning = ""
-    reasoning_match = REASONING_LINE.search(raw_response)
-    if reasoning_match:
-        reasoning = reasoning_match.group(1).strip()
-
-    # Parse the action
-    for action_name, pattern in ACTION_PATTERNS.items():
+    # Try to match an action pattern
+    for action_name, pattern in ACTION_PATTERNS:
         match = pattern.search(action_text)
         if match:
-            args = match.group(1) if match.lastindex else None
+            args = match.group(1).strip() if match.lastindex else None
             return {
                 "action": action_name,
                 "args": args,
@@ -86,6 +83,24 @@ def parse_action(raw_response: str) -> dict:
         "reasoning": reasoning,
         "parse_failed": True,
     }
+
+
+def _extract_sections(text: str) -> dict[str, str]:
+    """Split response into ACTION/WORKING/REASONING sections.
+
+    Handles multi-line WORKING blocks correctly by splitting at
+    section labels rather than just taking the first line.
+    """
+    sections: dict[str, str] = {}
+    matches = list(_SECTION_RE.finditer(text))
+
+    for i, m in enumerate(matches):
+        label = m.group(1).lower()
+        start = m.end()
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+        sections[label] = text[start:end].strip()
+
+    return sections
 
 
 def _default_rest(context: str) -> dict:
