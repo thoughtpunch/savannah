@@ -1,0 +1,113 @@
+"""Memory system — recall (BM25 keyword search), remember, compact."""
+
+from __future__ import annotations
+
+import math
+import re
+from collections import Counter
+from pathlib import Path
+
+
+def recall(memory_dir: Path, query: str, max_results: int = 3) -> list[str]:
+    """Search all memory files for chunks matching query using BM25 scoring.
+
+    Returns the top K most relevant chunks (paragraph-level).
+    """
+    chunks = _load_all_chunks(memory_dir)
+    if not chunks:
+        return ["No relevant memories found."]
+
+    scored = _bm25_score(chunks, query)
+    top = sorted(scored, key=lambda x: x[1], reverse=True)[:max_results]
+
+    # Filter out zero-score results
+    results = [chunk for chunk, score in top if score > 0]
+    return results if results else ["No relevant memories found."]
+
+
+def remember(memory_dir: Path, text: str) -> None:
+    """Append an entry to episodic memory."""
+    episodic = memory_dir / "episodic.md"
+    current = episodic.read_text() if episodic.exists() else ""
+    episodic.write_text(current + "\n" + text.strip() + "\n")
+
+
+def get_episodic_entries(memory_dir: Path, last_n: int = 30) -> list[str]:
+    """Get the last N entries from episodic memory."""
+    episodic = memory_dir / "episodic.md"
+    if not episodic.exists():
+        return []
+    lines = [l.strip() for l in episodic.read_text().split("\n") if l.strip()]
+    return lines[-last_n:]
+
+
+def read_memory_file(memory_dir: Path, filename: str) -> str:
+    """Read a memory file, returning empty string if missing."""
+    path = memory_dir / filename
+    return path.read_text().strip() if path.exists() else ""
+
+
+def write_memory_file(memory_dir: Path, filename: str, content: str) -> None:
+    """Overwrite a memory file."""
+    (memory_dir / filename).write_text(content)
+
+
+# ── BM25 implementation ────────────────────────────────────────────
+
+
+def _load_all_chunks(memory_dir: Path) -> list[str]:
+    """Load all memory files and split into paragraph-level chunks."""
+    chunks = []
+    for md_file in memory_dir.glob("*.md"):
+        text = md_file.read_text()
+        # Split on double newlines (paragraphs) or single entries
+        paragraphs = re.split(r"\n\n+", text)
+        for p in paragraphs:
+            p = p.strip()
+            if p:
+                chunks.append(p)
+    return chunks
+
+
+def _tokenize(text: str) -> list[str]:
+    """Simple whitespace + punctuation tokenization, lowercased."""
+    return re.findall(r"[a-z0-9]+", text.lower())
+
+
+def _bm25_score(
+    chunks: list[str], query: str, k1: float = 1.5, b: float = 0.75
+) -> list[tuple[str, float]]:
+    """Score chunks against query using BM25."""
+    query_tokens = _tokenize(query)
+    if not query_tokens:
+        return [(c, 0.0) for c in chunks]
+
+    # Document frequencies
+    n = len(chunks)
+    chunk_tokens = [_tokenize(c) for c in chunks]
+    avg_dl = sum(len(t) for t in chunk_tokens) / max(n, 1)
+
+    # IDF for query terms
+    df = Counter()
+    for tokens in chunk_tokens:
+        unique = set(tokens)
+        for qt in query_tokens:
+            if qt in unique:
+                df[qt] += 1
+
+    results = []
+    for chunk, tokens in zip(chunks, chunk_tokens):
+        tf = Counter(tokens)
+        dl = len(tokens)
+        score = 0.0
+        for qt in query_tokens:
+            if df[qt] == 0:
+                continue
+            idf = math.log((n - df[qt] + 0.5) / (df[qt] + 0.5) + 1)
+            tf_norm = (tf[qt] * (k1 + 1)) / (
+                tf[qt] + k1 * (1 - b + b * dl / max(avg_dl, 1))
+            )
+            score += idf * tf_norm
+        results.append((chunk, score))
+
+    return results
