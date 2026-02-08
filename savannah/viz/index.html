@@ -9,30 +9,48 @@
 <body>
     <header>
         <h1>Savannah Viewer</h1>
-        <div id="status">Load an experiment to begin</div>
+        <div id="info-bar">
+            <span id="status">Load an experiment to begin</span>
+            <span id="grid-info"></span>
+        </div>
     </header>
 
     <main>
         <div id="grid-container">
-            <canvas id="grid" width="600" height="600"></canvas>
+            <canvas id="grid" width="660" height="660"></canvas>
+            <div id="tooltip" class="hidden"></div>
+        </div>
+
+        <div id="side-panel">
+            <div id="inspector">
+                <h2 id="inspector-title">Click an agent to inspect</h2>
+                <div id="inspector-content"></div>
+            </div>
         </div>
 
         <div id="controls">
             <div id="timeline">
-                <button id="play-btn">Play</button>
-                <input type="range" id="tick-slider" min="0" max="0" value="0">
+                <button id="play-btn" title="Play/Pause">Play</button>
+                <div id="timeline-track">
+                    <input type="range" id="tick-slider" min="0" max="0" value="0">
+                    <div id="perturbation-markers"></div>
+                </div>
                 <span id="tick-label">Tick 0</span>
+            </div>
+
+            <div id="speed-controls">
+                <label>Speed:</label>
+                <button class="speed-btn" data-speed="0.25">0.25x</button>
+                <button class="speed-btn" data-speed="0.5">0.5x</button>
+                <button class="speed-btn active" data-speed="1">1x</button>
+                <button class="speed-btn" data-speed="2">2x</button>
             </div>
 
             <div id="options">
                 <label><input type="checkbox" id="show-trails"> Trails</label>
-                <label><input type="checkbox" id="show-names"> Names</label>
+                <label><input type="checkbox" id="show-names" checked> Names</label>
+                <label><input type="checkbox" id="show-dead"> Dead</label>
             </div>
-        </div>
-
-        <div id="inspector">
-            <h2 id="inspector-title">Click an agent to inspect</h2>
-            <div id="inspector-content"></div>
         </div>
     </main>
 
