@@ -1,0 +1,8 @@
+# Social — deception only
+inherits: default
+
+perturbation:
+  enabled: false
+
+social:
+  deceptive_agents: 3

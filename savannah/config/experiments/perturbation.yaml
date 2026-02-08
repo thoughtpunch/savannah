@@ -1,0 +1,9 @@
+# Perturbation — memory corruption only
+inherits: default
+
+perturbation:
+  enabled: true
+  rate: 0.05
+
+social:
+  deceptive_agents: 0

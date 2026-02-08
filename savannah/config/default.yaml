@@ -1,0 +1,91 @@
+# ILET — Integrity Layer Emergence Testbed
+# Base configuration — all parameters tunable here
+
+simulation:
+  seed: 42
+  ticks: 5000
+  tick_delay_ms: 0            # artificial delay between ticks (for viz)
+  snapshot_every: 100         # full world snapshot interval
+  parallel_agents: true       # async API calls within tick
+
+world:
+  grid_size: 30
+  toroidal: true              # edges wrap
+  food:
+    spawn_rate: 0.015         # probability per empty cell per tick
+    size_min: 200
+    size_max: 800
+    decay_rate: 0             # energy lost per tick (0 = no decay)
+    min_sources: 5            # floor — always maintain at least this many
+    max_sources: 20           # cap on simultaneous food sources
+
+agents:
+  count: 12
+  energy_max: 100
+  energy_start: 80
+  energy_drain_per_tick: 1
+  energy_per_move: 2
+  energy_per_eat_tick: 50
+  energy_per_recall: 1
+  energy_per_remember: 1
+  energy_per_compact: 2
+  energy_per_signal: 1
+  energy_per_observe: 1
+  energy_per_attack: 5
+  energy_per_flee: 4
+  energy_per_rest: 0.5
+  food_value: 80              # energy if killed and eaten
+  vision_range: 3
+  comm_range: 5
+  eat_rate: 50                # max energy consumed per eat action
+  combat_risk_factor: 0.3     # fraction of energy both combatants lose
+  recall_max_results: 3
+  working_memory_max_tokens: 500
+  episodic_memory_max_entries: 200   # triggers forced compaction
+  signal_max_tokens: 50
+
+llm:
+  provider: "claude_code"       # "claude_code" | "anthropic_api" | "openai_api" | "local_ollama"
+  session_mode: "stateless"     # "stateless" | "resumable"
+  model: "haiku"                # model alias for tick inference
+  compaction_model: "sonnet"    # stronger model for compact actions
+  temperature: 0.3
+  max_output_tokens: 400
+  timeout_seconds: 30
+  retry_max: 3
+  retry_backoff_base: 2
+  max_concurrent_agents: 6     # parallel subprocess limit
+  cache_responses: false        # enable for deterministic replay (stateless only)
+  # API-only settings (ignored when provider is claude_code):
+  # anthropic_api_key: env:ANTHROPIC_API_KEY
+  # openai_api_key: env:OPENAI_API_KEY
+  # ollama_base_url: "http://localhost:11434"
+
+perturbation:
+  enabled: false
+  rate: 0.05
+  start_tick: 100             # baseline phase before perturbation begins
+  types:
+    episodic: 0.4
+    semantic: 0.3
+    self_model: 0.2
+    working: 0.1
+
+social:
+  deceptive_agents: 0         # number of agents with deception directive
+  deception_start_tick: 100
+
+phases:
+  - name: "baseline"
+    start_tick: 0
+    end_tick: 99
+    perturbation.enabled: false
+    social.deceptive_agents: 0
+  - name: "pressure"
+    start_tick: 100
+    end_tick: 4999
+    # inherits perturbation/social from main config
+
+metrics:
+  extract_every: 1            # run metric extraction every N ticks
+  output_file: "analysis/metrics.csv"

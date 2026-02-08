@@ -1,0 +1,8 @@
+# Baseline — no pressure, calibration run
+inherits: default
+
+perturbation:
+  enabled: false
+
+social:
+  deceptive_agents: 0

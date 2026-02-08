@@ -1,0 +1,9 @@
+# Resumable + perturbation — persistent session with memory corruption
+inherits: default
+
+llm:
+  session_mode: "resumable"
+
+perturbation:
+  enabled: true
+  rate: 0.05
