@@ -1,0 +1,1630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Savannah - ILET Live</title>
+<style>
+/* ── Reset & base ──────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0a0e14; --bg2: #12171f; --bg3: #1a2030;
+  --text: #c8d0dc; --text-dim: #6b7a8d; --text-bright: #e8edf4;
+  --accent: #4fc3f7; --accent2: #81d4fa;
+  --green: #66bb6a; --green-dim: #2e7d32;
+  --red: #ef5350; --red-dim: #c62828;
+  --orange: #ffa726; --yellow: #ffee58;
+  --purple: #ab47bc;
+  --border: #1e2a3a;
+  --font: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+}
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 13px; overflow: hidden; }
+
+/* ── Layout ────────────────────────────────────────────────── */
+#app { display: flex; flex-direction: column; height: 100vh; }
+
+/* Top bar */
+#topbar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 16px; background: var(--bg2);
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
+  min-height: 44px;
+}
+#topbar .logo { color: var(--accent); font-weight: 700; font-size: 15px; letter-spacing: 1px; }
+#topbar .sep { color: var(--border); }
+#tick-display { color: var(--text-bright); font-size: 14px; font-weight: 600; }
+#tick-display .dim { color: var(--text-dim); font-weight: 400; }
+#status-badge {
+  padding: 2px 10px; border-radius: 12px; font-size: 11px;
+  text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;
+}
+.status-lobby { background: var(--bg3); color: var(--text-dim); }
+.status-running { background: #1b3a25; color: var(--green); }
+.status-paused { background: #3a351b; color: var(--orange); }
+.status-thinking { background: #1b2a3a; color: var(--accent); animation: pulse 1s ease infinite; }
+.status-stopped { background: #3a1b1b; color: var(--red); }
+.status-complete { background: #1b2a3a; color: var(--accent2); }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+#controls-bar { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+#controls-bar button {
+  background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+  padding: 4px 12px; border-radius: 4px; cursor: pointer; font-family: var(--font);
+  font-size: 12px; transition: all 0.15s;
+}
+#controls-bar button:hover { background: #243040; border-color: var(--accent); color: var(--accent); }
+#controls-bar button:disabled { opacity: 0.3; cursor: default; }
+#speed-group { display: flex; gap: 2px; }
+#speed-group button { padding: 4px 8px; font-size: 11px; }
+#speed-group button.active { background: #1b2a3a; border-color: var(--accent); color: var(--accent); }
+#inference-time { color: var(--text-dim); font-size: 11px; }
+
+/* Timeline scrubber */
+#timeline-bar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 16px; background: var(--bg2);
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+#timeline-bar.hidden { display: none; }
+#timeline-bar label { color: var(--text-dim); font-size: 11px; flex-shrink: 0; }
+#timeline-slider {
+  flex: 1; height: 4px; -webkit-appearance: none; appearance: none;
+  background: var(--bg3); border-radius: 2px; outline: none; cursor: pointer;
+}
+#timeline-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 14px; height: 14px;
+  background: var(--accent); border-radius: 50%; cursor: grab;
+}
+#timeline-value { color: var(--text-dim); font-size: 11px; min-width: 40px; text-align: right; }
+#timeline-markers {
+  position: relative; height: 4px; flex: 1; pointer-events: none;
+}
+.timeline-marker {
+  position: absolute; width: 3px; height: 8px; top: -2px;
+  background: var(--red); border-radius: 1px;
+}
+
+/* Main content area */
+#main { display: flex; flex: 1; overflow: hidden; }
+
+/* Thought stream (left/main panel) */
+#thought-stream {
+  flex: 1; overflow-y: auto; padding: 12px 16px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+#thought-stream::-webkit-scrollbar { width: 6px; }
+#thought-stream::-webkit-scrollbar-track { background: transparent; }
+#thought-stream::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+.tick-group { margin-bottom: 8px; }
+.tick-header {
+  color: var(--text-dim); font-size: 11px; padding: 4px 0;
+  border-bottom: 1px solid var(--border); margin-bottom: 4px;
+  display: flex; justify-content: space-between;
+}
+.tick-header .time { color: var(--text-dim); font-size: 10px; }
+
+.agent-entry {
+  display: flex; gap: 8px; padding: 3px 8px; border-radius: 4px;
+  transition: background 0.15s; cursor: pointer; align-items: baseline;
+}
+.agent-entry:hover { background: var(--bg3); }
+.agent-entry.followed { background: rgba(79,195,247,0.08); }
+.agent-name {
+  font-weight: 600; min-width: 120px; flex-shrink: 0; font-size: 12px;
+}
+.agent-action {
+  color: var(--text-bright); min-width: 100px; flex-shrink: 0;
+}
+.agent-action.action-eat { color: var(--green); }
+.agent-action.action-attack { color: var(--red); }
+.agent-action.action-flee { color: var(--orange); }
+.agent-action.action-signal { color: var(--purple); }
+.agent-action.action-remember, .agent-action.action-recall, .agent-action.action-compact { color: var(--accent); }
+.agent-reasoning {
+  color: var(--text-dim); flex: 1; font-size: 12px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.agent-energy-bar {
+  width: 50px; height: 4px; background: var(--bg); border-radius: 2px;
+  flex-shrink: 0; align-self: center;
+}
+.agent-energy-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
+
+/* Perturbation events */
+.perturbation-entry {
+  display: flex; gap: 8px; padding: 4px 8px; border-radius: 4px;
+  background: rgba(239,83,80,0.08); border-left: 3px solid var(--red);
+  margin: 2px 0; font-size: 12px; align-items: baseline;
+}
+.perturbation-entry .perturb-icon { color: var(--red); font-weight: 700; }
+.perturbation-entry .perturb-agent { color: var(--red); font-weight: 600; min-width: 120px; }
+.perturbation-entry .perturb-type { color: var(--orange); min-width: 80px; }
+.perturbation-entry .perturb-detail { color: var(--text-dim); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.perturb-diff-old { text-decoration: line-through; color: var(--red-dim); }
+.perturb-diff-new { color: var(--red); font-weight: 600; }
+
+/* Event notifications (toast) */
+#event-toasts {
+  position: fixed; top: 56px; right: 356px; z-index: 50;
+  display: flex; flex-direction: column; gap: 6px;
+  pointer-events: none;
+}
+.event-toast {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 6px;
+  padding: 8px 14px; font-size: 12px; opacity: 0;
+  animation: toastIn 0.3s ease forwards, toastOut 0.3s ease 3s forwards;
+  max-width: 350px;
+}
+.event-toast.death { border-color: var(--red); }
+.event-toast.perturbation { border-color: var(--orange); }
+.event-toast.kill { border-color: var(--red); }
+.event-toast.low-energy { border-color: var(--yellow); }
+@keyframes toastIn { to { opacity: 1; } }
+@keyframes toastOut { to { opacity: 0; } }
+
+/* Right sidebar — minimap + agent list + stats */
+#sidebar {
+  width: 340px; flex-shrink: 0; border-left: 1px solid var(--border);
+  display: flex; flex-direction: column; background: var(--bg2);
+}
+#minimap-section { padding: 12px; border-bottom: 1px solid var(--border); }
+#minimap-label { color: var(--text-dim); font-size: 11px; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; display: flex; justify-content: space-between; }
+#minimap-label .trail-toggle { cursor: pointer; color: var(--text-dim); font-size: 10px; }
+#minimap-label .trail-toggle.active { color: var(--accent); }
+#minimap {
+  width: 312px; height: 312px; border-radius: 4px;
+  border: 1px solid var(--border); cursor: crosshair;
+  image-rendering: pixelated;
+}
+
+/* Mini sparkline charts */
+#charts-section { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+.chart-row { display: flex; gap: 8px; margin-bottom: 4px; align-items: center; }
+.chart-label { color: var(--text-dim); font-size: 10px; min-width: 60px; }
+.chart-canvas { border-radius: 2px; }
+.chart-value { color: var(--text-bright); font-size: 11px; min-width: 35px; text-align: right; font-weight: 600; }
+
+#agent-list {
+  flex: 1; overflow-y: auto; padding: 8px;
+}
+#agent-list::-webkit-scrollbar { width: 6px; }
+#agent-list::-webkit-scrollbar-track { background: transparent; }
+#agent-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+.agent-card {
+  padding: 6px 8px; border-radius: 4px; margin-bottom: 4px;
+  cursor: pointer; transition: background 0.15s;
+  display: flex; align-items: center; gap: 8px;
+}
+.agent-card:hover { background: var(--bg3); }
+.agent-card.followed { background: rgba(79,195,247,0.1); border: 1px solid rgba(79,195,247,0.2); }
+.agent-card.dead { opacity: 0.35; }
+.agent-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.agent-card-name { font-weight: 600; font-size: 12px; flex: 1; }
+.agent-card-energy { font-size: 11px; color: var(--text-dim); }
+.agent-card-status { font-size: 10px; }
+
+/* Stats panel */
+#stats-panel {
+  padding: 8px 12px; border-top: 1px solid var(--border);
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px;
+  font-size: 11px;
+}
+.stat-label { color: var(--text-dim); }
+.stat-value { color: var(--text-bright); text-align: right; font-weight: 600; }
+
+/* ── Agent profile modal ──────────────────────────────────── */
+#profile-modal {
+  position: fixed; inset: 0; background: rgba(10,14,20,0.85);
+  display: none; align-items: center; justify-content: center; z-index: 100;
+}
+#profile-modal.visible { display: flex; }
+#profile-box {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
+  padding: 24px; width: 500px; max-height: 80vh; overflow-y: auto;
+}
+#profile-box h2 { margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+#profile-box h2 .pdot { width: 14px; height: 14px; border-radius: 50%; }
+#profile-box .close-btn {
+  position: absolute; top: 12px; right: 16px; background: none;
+  border: none; color: var(--text-dim); font-size: 18px; cursor: pointer;
+}
+.profile-section { margin-bottom: 16px; }
+.profile-section h3 { color: var(--text-dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; font-size: 12px; }
+.profile-grid .lbl { color: var(--text-dim); }
+.profile-grid .val { color: var(--text-bright); font-weight: 600; }
+.profile-energy-big { font-size: 28px; font-weight: 700; }
+.profile-history { font-size: 12px; max-height: 180px; overflow-y: auto; }
+.profile-history div { padding: 2px 0; border-bottom: 1px solid var(--border); }
+
+/* ── Lobby / landing page ──────────────────────────────────── */
+#lobby {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 32px; padding: 40px;
+}
+#lobby h1 { color: var(--accent); font-size: 32px; font-weight: 300; letter-spacing: 3px; }
+#lobby .subtitle { color: var(--text-dim); font-size: 14px; margin-top: -20px; }
+#presets { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; max-width: 700px; }
+.preset-card {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
+  padding: 20px; width: 200px; cursor: pointer; transition: all 0.2s;
+}
+.preset-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+.preset-card h3 { color: var(--text-bright); font-size: 14px; margin-bottom: 8px; }
+.preset-card p { color: var(--text-dim); font-size: 11px; line-height: 1.5; }
+.preset-card .preset-tag {
+  display: inline-block; padding: 1px 6px; border-radius: 3px;
+  font-size: 10px; margin-top: 8px;
+}
+.tag-safe { background: #1b3a25; color: var(--green); }
+.tag-perturb { background: #3a1b1b; color: var(--red); }
+.tag-social { background: #2a1b3a; color: var(--purple); }
+.tag-full { background: #3a351b; color: var(--orange); }
+
+#lobby-options {
+  display: flex; gap: 16px; align-items: center; font-size: 12px; color: var(--text-dim);
+}
+#lobby-options label { display: flex; align-items: center; gap: 4px; cursor: pointer; }
+#lobby-options input[type="checkbox"] { accent-color: var(--accent); }
+#lobby-options input[type="number"] {
+  background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+  padding: 3px 8px; border-radius: 4px; width: 80px; font-family: var(--font); font-size: 12px;
+}
+
+/* ── Completion overlay ────────────────────────────────────── */
+#complete-overlay {
+  position: fixed; inset: 0; background: rgba(10,14,20,0.85);
+  display: none; align-items: center; justify-content: center; z-index: 100;
+}
+#complete-overlay.visible { display: flex; }
+#complete-box {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
+  padding: 32px 40px; text-align: center; max-width: 500px;
+}
+#complete-box h2 { color: var(--accent); font-size: 22px; margin-bottom: 12px; }
+#complete-box .stats { color: var(--text-dim); font-size: 13px; line-height: 1.8; text-align: left; }
+#complete-box .stat-highlight { color: var(--text-bright); font-weight: 600; }
+#complete-box button {
+  margin-top: 20px; background: var(--accent); border: none; color: var(--bg);
+  padding: 8px 24px; border-radius: 6px; cursor: pointer; font-family: var(--font);
+  font-size: 13px; font-weight: 600;
+}
+#complete-box button:hover { background: var(--accent2); }
+
+/* ── History tab ────────────────────────────────────────────── */
+#history-view {
+  flex: 1; display: none; flex-direction: column; padding: 24px 32px;
+  overflow-y: auto;
+}
+#history-view.visible { display: flex; }
+#history-view h2 { color: var(--text-bright); font-size: 18px; margin-bottom: 16px; }
+#history-back {
+  background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+  padding: 4px 12px; border-radius: 4px; cursor: pointer; font-family: var(--font);
+  font-size: 12px; margin-bottom: 16px; width: fit-content;
+}
+#history-back:hover { border-color: var(--accent); color: var(--accent); }
+.run-list { display: flex; flex-direction: column; gap: 8px; }
+.run-card {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
+  padding: 16px; cursor: pointer; transition: all 0.15s;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.run-card:hover { border-color: var(--accent); }
+.run-card-info h3 { color: var(--text-bright); font-size: 14px; margin-bottom: 4px; }
+.run-card-info p { color: var(--text-dim); font-size: 11px; }
+.run-card-stats { display: flex; gap: 16px; font-size: 12px; }
+.run-card-stats .run-stat { text-align: center; }
+.run-card-stats .run-stat-val { color: var(--text-bright); font-weight: 600; display: block; }
+.run-card-stats .run-stat-lbl { color: var(--text-dim); font-size: 10px; }
+.run-empty { color: var(--text-dim); text-align: center; padding: 40px; }
+.run-card.selected { border-color: var(--accent); background: rgba(79,195,247,0.05); }
+.run-card .select-check { width: 18px; height: 18px; border: 2px solid var(--border); border-radius: 4px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+.run-card.selected .select-check { border-color: var(--accent); color: var(--accent); }
+#compare-bar {
+  display: flex; gap: 8px; align-items: center; margin-bottom: 12px;
+}
+#compare-bar button {
+  background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+  padding: 4px 12px; border-radius: 4px; cursor: pointer; font-family: var(--font); font-size: 12px;
+}
+#compare-bar button:hover { border-color: var(--accent); color: var(--accent); }
+#compare-bar button:disabled { opacity: 0.3; cursor: default; }
+#compare-bar .compare-hint { color: var(--text-dim); font-size: 11px; }
+
+/* Compare view */
+#compare-view { display: none; }
+#compare-view.visible { display: flex; flex: 1; flex-direction: column; }
+#compare-header {
+  display: flex; align-items: center; gap: 8px; padding: 6px 16px;
+  background: var(--bg2); border-bottom: 1px solid var(--border);
+}
+#compare-header button { background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 4px 12px; border-radius: 4px; cursor: pointer; font-family: var(--font); font-size: 12px; }
+#compare-header button:hover { border-color: var(--accent); color: var(--accent); }
+#compare-body { display: flex; flex: 1; overflow: hidden; }
+.compare-pane {
+  flex: 1; display: flex; flex-direction: column; overflow: hidden;
+}
+.compare-pane + .compare-pane { border-left: 2px solid var(--accent); }
+.compare-pane-title { padding: 6px 12px; font-size: 12px; font-weight: 600; color: var(--text-bright); background: var(--bg3); border-bottom: 1px solid var(--border); }
+.compare-pane-body { display: flex; flex: 1; overflow: hidden; }
+.compare-map { padding: 8px; }
+.compare-agents { flex: 1; overflow-y: auto; padding: 8px; }
+
+/* Replay view */
+#replay-view { display: none; }
+#replay-view.visible { display: flex; flex: 1; }
+#replay-controls {
+  display: flex; align-items: center; gap: 8px; padding: 6px 16px;
+  background: var(--bg2); border-bottom: 1px solid var(--border);
+}
+#replay-controls button {
+  background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+  padding: 4px 12px; border-radius: 4px; cursor: pointer; font-family: var(--font); font-size: 12px;
+}
+#replay-controls button:hover { border-color: var(--accent); color: var(--accent); }
+#replay-slider { flex: 1; }
+#replay-tick-label { color: var(--text-dim); font-size: 12px; min-width: 80px; }
+
+/* Hide sections based on state */
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- Top bar -->
+  <div id="topbar">
+    <span class="logo">SAVANNAH</span>
+    <span class="sep">|</span>
+    <span id="tick-display">Tick <strong>0</strong> <span class="dim">/ 0</span></span>
+    <span id="status-badge" class="status-lobby">lobby</span>
+    <span id="inference-time"></span>
+    <div id="controls-bar">
+      <button id="btn-pause" disabled title="Pause (Space)">Pause</button>
+      <button id="btn-step" disabled title="Step one tick (.)">Step</button>
+      <button id="btn-stop" disabled title="Stop simulation (Esc)">Stop</button>
+      <div id="speed-group">
+        <button data-delay="500" title="Slow">0.5x</button>
+        <button data-delay="200" class="active" title="Normal">1x</button>
+        <button data-delay="50" title="Fast">3x</button>
+        <button data-delay="0" title="Max speed">Max</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Timeline scrubber (shown during pause) -->
+  <div id="timeline-bar" class="hidden">
+    <label>Timeline</label>
+    <input type="range" id="timeline-slider" min="0" max="0" value="0">
+    <span id="timeline-value">0</span>
+  </div>
+
+  <!-- Lobby / start screen -->
+  <div id="lobby">
+    <h1>SAVANNAH</h1>
+    <p class="subtitle">Integrity Layer Emergence Testbed</p>
+    <div id="presets">
+      <div class="preset-card" data-preset="baseline">
+        <h3>Baseline</h3>
+        <p>No perturbation. Agents forage and survive normally. Control condition.</p>
+        <span class="preset-tag tag-safe">Control</span>
+      </div>
+      <div class="preset-card" data-preset="perturbation">
+        <h3>Perturbation</h3>
+        <p>Memory corruption active after tick 100. Watch for self-correction.</p>
+        <span class="preset-tag tag-perturb">Memory Corruption</span>
+      </div>
+      <div class="preset-card" data-preset="social">
+        <h3>Social Pressure</h3>
+        <p>Deceptive agents inject false signals. Trust dynamics emerge.</p>
+        <span class="preset-tag tag-social">Deception</span>
+      </div>
+      <div class="preset-card" data-preset="full_pressure">
+        <h3>Full Pressure</h3>
+        <p>Both perturbation and social pressure. Maximum experimental condition.</p>
+        <span class="preset-tag tag-full">Combined</span>
+      </div>
+    </div>
+    <div id="lobby-options">
+      <label><input type="checkbox" id="opt-mock" checked> Mock LLM (no API)</label>
+      <label>Ticks: <input type="number" id="opt-ticks" value="500" min="10" max="10000" step="10"></label>
+    </div>
+    <button id="btn-history" style="background:var(--bg3);border:1px solid var(--border);color:var(--text-dim);padding:8px 20px;border-radius:6px;cursor:pointer;font-family:var(--font);font-size:12px;margin-top:8px;">View Past Runs</button>
+  </div>
+
+  <!-- History view -->
+  <div id="history-view">
+    <button id="history-back">Back to Lobby</button>
+    <h2>Past Runs</h2>
+    <div id="compare-bar">
+      <button id="btn-compare" disabled>Compare Selected</button>
+      <span class="compare-hint">Select 2 runs to compare side-by-side</span>
+    </div>
+    <div class="run-list" id="run-list"></div>
+  </div>
+
+  <!-- Compare view (side-by-side) -->
+  <div id="compare-view">
+    <div id="compare-header">
+      <button id="compare-back-btn">Back</button>
+      <input type="range" id="compare-slider" min="0" max="0" value="0" style="flex:1;">
+      <span id="compare-tick-label" style="color:var(--text-dim);font-size:12px;min-width:80px;">Tick 0</span>
+      <button id="compare-play-btn">Play</button>
+    </div>
+    <div id="compare-body">
+      <div class="compare-pane" id="compare-left">
+        <div class="compare-pane-title" id="compare-left-title">Run A</div>
+        <div class="compare-pane-body">
+          <div class="compare-map"><canvas id="compare-left-map" width="200" height="200" style="width:200px;height:200px;border-radius:4px;border:1px solid var(--border);image-rendering:pixelated;"></canvas></div>
+          <div class="compare-agents" id="compare-left-agents"></div>
+        </div>
+      </div>
+      <div class="compare-pane" id="compare-right">
+        <div class="compare-pane-title" id="compare-right-title">Run B</div>
+        <div class="compare-pane-body">
+          <div class="compare-map"><canvas id="compare-right-map" width="200" height="200" style="width:200px;height:200px;border-radius:4px;border:1px solid var(--border);image-rendering:pixelated;"></canvas></div>
+          <div class="compare-agents" id="compare-right-agents"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Replay view (reuses main layout) -->
+  <div id="replay-view">
+    <div style="display:flex;flex-direction:column;flex:1;">
+      <div id="replay-controls">
+        <button id="replay-back-btn">Back</button>
+        <button id="replay-play-btn">Play</button>
+        <input type="range" id="replay-slider" min="0" max="0" value="0">
+        <span id="replay-tick-label">Tick 0</span>
+      </div>
+      <div style="display:flex;flex:1;overflow:hidden;">
+        <div id="replay-stream" style="flex:1;overflow-y:auto;padding:12px 16px;"></div>
+        <div style="width:340px;flex-shrink:0;border-left:1px solid var(--border);background:var(--bg2);display:flex;flex-direction:column;">
+          <div style="padding:12px;">
+            <div style="color:var(--text-dim);font-size:11px;margin-bottom:6px;text-transform:uppercase;">REPLAY MAP</div>
+            <canvas id="replay-minimap" width="312" height="312" style="width:312px;height:312px;border-radius:4px;border:1px solid var(--border);image-rendering:pixelated;"></canvas>
+          </div>
+          <div id="replay-agent-list" style="flex:1;overflow-y:auto;padding:8px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main simulation view (hidden until running) -->
+  <div id="main" class="hidden">
+    <!-- Thought stream -->
+    <div id="thought-stream">
+      <div id="stream-empty" style="color: var(--text-dim); text-align: center; padding-top: 40px;">
+        Waiting for first tick...
+      </div>
+    </div>
+
+    <!-- Sidebar: minimap + charts + agent list + stats -->
+    <div id="sidebar">
+      <div id="minimap-section">
+        <div id="minimap-label">
+          <span>GRID MAP</span>
+          <span class="trail-toggle" id="trail-toggle" title="Toggle trails">Trails</span>
+        </div>
+        <canvas id="minimap" width="312" height="312"></canvas>
+      </div>
+      <div id="charts-section">
+        <div class="chart-row">
+          <span class="chart-label">Population</span>
+          <canvas class="chart-canvas" id="chart-pop" width="180" height="24"></canvas>
+          <span class="chart-value" id="chart-pop-val">-</span>
+        </div>
+        <div class="chart-row">
+          <span class="chart-label">Avg Energy</span>
+          <canvas class="chart-canvas" id="chart-energy" width="180" height="24"></canvas>
+          <span class="chart-value" id="chart-energy-val">-</span>
+        </div>
+        <div class="chart-row">
+          <span class="chart-label">Food</span>
+          <canvas class="chart-canvas" id="chart-food" width="180" height="24"></canvas>
+          <span class="chart-value" id="chart-food-val">-</span>
+        </div>
+      </div>
+      <div id="agent-list"></div>
+      <div id="stats-panel">
+        <span class="stat-label">Alive</span><span class="stat-value" id="stat-alive">-</span>
+        <span class="stat-label">Dead</span><span class="stat-value" id="stat-dead">-</span>
+        <span class="stat-label">Food</span><span class="stat-value" id="stat-food">-</span>
+        <span class="stat-label">Perturbations</span><span class="stat-value" id="stat-perturb">0</span>
+        <span class="stat-label">Total kills</span><span class="stat-value" id="stat-kills">0</span>
+        <span class="stat-label">Avg energy</span><span class="stat-value" id="stat-avg-energy">-</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Event notifications -->
+  <div id="event-toasts"></div>
+
+  <!-- Agent profile modal -->
+  <div id="profile-modal" onclick="if(event.target===this)closeProfile()">
+    <div id="profile-box" style="position:relative;">
+      <button class="close-btn" onclick="closeProfile()">&times;</button>
+      <h2 id="profile-name"><span class="pdot" id="profile-dot"></span><span id="profile-name-text"></span></h2>
+      <div class="profile-section">
+        <h3>Vitals</h3>
+        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px;">
+          <span class="profile-energy-big" id="profile-energy-big">80.0</span>
+          <span style="color:var(--text-dim);font-size:12px;">/ <span id="profile-max-energy">100</span> energy</span>
+        </div>
+        <div class="profile-grid">
+          <span class="lbl">Position</span><span class="val" id="profile-pos">-</span>
+          <span class="lbl">Age</span><span class="val" id="profile-age">-</span>
+          <span class="lbl">Kills</span><span class="val" id="profile-kills">0</span>
+          <span class="lbl">Perturbed</span><span class="val" id="profile-perturbed">0</span>
+          <span class="lbl">Status</span><span class="val" id="profile-status">alive</span>
+        </div>
+      </div>
+      <div class="profile-section">
+        <h3>Personality (Emergent)</h3>
+        <div id="profile-personality" style="font-size:12px;color:var(--text);line-height:1.5;"></div>
+      </div>
+      <div class="profile-section">
+        <h3>Recent Actions</h3>
+        <div class="profile-history" id="profile-history"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Completion overlay -->
+  <div id="complete-overlay">
+    <div id="complete-box">
+      <h2>Simulation Complete</h2>
+      <div class="stats" id="complete-stats"></div>
+      <button onclick="returnToLobby()">New Simulation</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ─── State ─────────────────────────────────────────────────────── */
+let ws = null;
+let state = 'lobby';
+let followAgent = null;
+let gridSize = 30;
+let agentColors = {};
+let totalPerturbations = 0;
+let tickHistory = [];
+const MAX_HISTORY = 500;
+let autoScroll = true;
+let showTrails = false;
+let agentTrails = {};      // name -> [{x,y}...]
+const MAX_TRAIL = 30;
+let agentActionHistory = {};  // name -> [{tick, action, reasoning}...]
+let timeSeriesData = { pop: [], energy: [], food: [] };
+const MAX_TIMESERIES = 200;
+let previousAgentState = {}; // for event detection
+
+/* ─── DOM refs ──────────────────────────────────────────────────── */
+const $lobby = document.getElementById('lobby');
+const $main = document.getElementById('main');
+const $stream = document.getElementById('thought-stream');
+const $minimap = document.getElementById('minimap');
+const $agentList = document.getElementById('agent-list');
+const $tickDisplay = document.getElementById('tick-display');
+const $statusBadge = document.getElementById('status-badge');
+const $inferenceTime = document.getElementById('inference-time');
+const $btnPause = document.getElementById('btn-pause');
+const $btnStep = document.getElementById('btn-step');
+const $btnStop = document.getElementById('btn-stop');
+const $completeOverlay = document.getElementById('complete-overlay');
+const $completeStats = document.getElementById('complete-stats');
+const $profileModal = document.getElementById('profile-modal');
+const $toasts = document.getElementById('event-toasts');
+const $timelineBar = document.getElementById('timeline-bar');
+const $timelineSlider = document.getElementById('timeline-slider');
+const $timelineValue = document.getElementById('timeline-value');
+const ctx = $minimap.getContext('2d');
+
+/* ─── WebSocket ─────────────────────────────────────────────────── */
+function connect() {
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(`${proto}//${location.host}`);
+  ws.onopen = () => console.log('WS connected');
+  ws.onclose = () => { console.log('WS closed'); setTimeout(connect, 2000); };
+  ws.onerror = (e) => console.error('WS error', e);
+  ws.onmessage = (e) => {
+    try { handleMessage(JSON.parse(e.data)); }
+    catch (err) { console.error('Parse error', err); }
+  };
+}
+
+function send(obj) {
+  if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj));
+}
+
+/* ─── Message handling ──────────────────────────────────────────── */
+function handleMessage(msg) {
+  switch (msg.type) {
+    case 'status': handleStatus(msg); break;
+    case 'thinking': handleThinking(msg); break;
+    case 'tick': handleTick(msg); break;
+    case 'complete': handleComplete(msg); break;
+    case 'error': console.error('Server error:', msg.message); break;
+  }
+}
+
+function handleStatus(msg) {
+  setStatus(msg.state);
+  if (msg.state === 'lobby') showLobby();
+  else if (msg.state === 'running') showMain();
+}
+
+function handleThinking(msg) {
+  setStatus('thinking');
+  updateTickDisplay(msg.tick, msg.max_ticks);
+}
+
+function handleTick(msg) {
+  setStatus('running');
+  updateTickDisplay(msg.tick, msg.max_ticks);
+  if (msg.inference_time_ms) $inferenceTime.textContent = `${msg.inference_time_ms}ms`;
+
+  gridSize = msg.world.size;
+  assignColors(msg.agents);
+
+  // Update trails
+  for (const a of msg.agents) {
+    if (a.alive) {
+      if (!agentTrails[a.name]) agentTrails[a.name] = [];
+      agentTrails[a.name].push({ x: a.position[0], y: a.position[1] });
+      if (agentTrails[a.name].length > MAX_TRAIL) agentTrails[a.name].shift();
+    }
+  }
+
+  // Update action history
+  for (const a of msg.agents) {
+    if (!agentActionHistory[a.name]) agentActionHistory[a.name] = [];
+    if (a.action) {
+      agentActionHistory[a.name].push({ tick: msg.tick, action: a.action, reasoning: a.reasoning || '' });
+      if (agentActionHistory[a.name].length > 50) agentActionHistory[a.name].shift();
+    }
+  }
+
+  // Event detection
+  detectEvents(msg);
+
+  // Time series
+  const alive = msg.agents.filter(a => a.alive);
+  timeSeriesData.pop.push(alive.length);
+  timeSeriesData.energy.push(alive.length ? alive.reduce((s, a) => s + a.energy, 0) / alive.length : 0);
+  timeSeriesData.food.push(msg.world.food_sources.length);
+  if (timeSeriesData.pop.length > MAX_TIMESERIES) {
+    timeSeriesData.pop.shift();
+    timeSeriesData.energy.shift();
+    timeSeriesData.food.shift();
+  }
+
+  // Store in history
+  tickHistory.push(msg);
+  if (tickHistory.length > MAX_HISTORY) tickHistory.shift();
+
+  // Update timeline slider
+  $timelineSlider.max = tickHistory.length - 1;
+  $timelineSlider.value = tickHistory.length - 1;
+
+  // Render
+  renderStream(msg);
+  renderMinimap(msg);
+  renderAgentList(msg.agents);
+  renderStats(msg);
+  renderCharts();
+
+  // Save previous state for event detection
+  previousAgentState = {};
+  for (const a of msg.agents) previousAgentState[a.name] = { alive: a.alive, energy: a.energy, kills: a.kills };
+}
+
+function handleComplete(msg) {
+  setStatus('complete');
+  const alive = tickHistory.length > 0 ? tickHistory[tickHistory.length - 1].agents.filter(a => a.alive) : [];
+  const avgEnergy = alive.length ? (alive.reduce((s, a) => s + a.energy, 0) / alive.length).toFixed(1) : '0';
+  $completeStats.innerHTML = `
+    <div>Ticks completed: <span class="stat-highlight">${msg.tick}</span> / ${msg.max_ticks}</div>
+    <div>Survivors: <span class="stat-highlight">${msg.alive}</span> / ${msg.total}</div>
+    <div>Average energy: <span class="stat-highlight">${avgEnergy}</span></div>
+    <div>Total perturbations: <span class="stat-highlight">${totalPerturbations}</span></div>
+    <div>Total kills: <span class="stat-highlight">${msg.agents ? msg.agents.reduce((s,a)=>s+(a.kills||0),0) : 0}</span></div>
+  `;
+  $completeOverlay.classList.add('visible');
+}
+
+/* ─── Event detection ───────────────────────────────────────────── */
+function detectEvents(msg) {
+  for (const a of msg.agents) {
+    const prev = previousAgentState[a.name];
+    if (!prev) continue;
+
+    // Death event
+    if (prev.alive && !a.alive) {
+      showToast(`${a.name} has died`, 'death');
+    }
+    // Kill event
+    if (a.kills > (prev.kills || 0)) {
+      showToast(`${a.name} killed an agent!`, 'kill');
+    }
+    // Low energy warning
+    if (prev.energy > 15 && a.energy <= 15 && a.alive) {
+      showToast(`${a.name} critically low energy (${a.energy.toFixed(0)})`, 'low-energy');
+    }
+  }
+
+  // Perturbation events
+  if (msg.perturbations) {
+    for (const p of msg.perturbations) {
+      totalPerturbations++;
+      showToast(`Memory corrupted: ${p.agent} [${p.type}]`, 'perturbation');
+    }
+  }
+}
+
+function showToast(text, type) {
+  const el = document.createElement('div');
+  el.className = `event-toast ${type}`;
+  el.textContent = text;
+  $toasts.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+/* ─── Status & UI state ─────────────────────────────────────────── */
+function setStatus(s) {
+  state = s;
+  $statusBadge.className = `status-${s}`;
+  $statusBadge.textContent = s;
+  const running = (s === 'running' || s === 'thinking');
+  $btnPause.disabled = !running && s !== 'paused';
+  $btnPause.textContent = (s === 'paused') ? 'Resume' : 'Pause';
+  $btnStep.disabled = (s !== 'paused');
+  $btnStop.disabled = (!running && s !== 'paused');
+  // Show timeline in paused state
+  if (s === 'paused' && tickHistory.length > 1) {
+    $timelineBar.classList.remove('hidden');
+  } else {
+    $timelineBar.classList.add('hidden');
+  }
+}
+
+function updateTickDisplay(tick, max) {
+  $tickDisplay.innerHTML = `Tick <strong>${tick}</strong> <span class="dim">/ ${max}</span>`;
+}
+
+function showLobby() {
+  $lobby.classList.remove('hidden');
+  $main.classList.add('hidden');
+  $completeOverlay.classList.remove('visible');
+  $timelineBar.classList.add('hidden');
+  totalPerturbations = 0;
+  tickHistory = [];
+  agentColors = {};
+  agentTrails = {};
+  agentActionHistory = {};
+  timeSeriesData = { pop: [], energy: [], food: [] };
+  previousAgentState = {};
+  followAgent = null;
+  $stream.innerHTML = '<div id="stream-empty" style="color: var(--text-dim); text-align: center; padding-top: 40px;">Waiting for first tick...</div>';
+}
+
+function showMain() {
+  $lobby.classList.add('hidden');
+  $main.classList.remove('hidden');
+}
+
+function returnToLobby() {
+  $completeOverlay.classList.remove('visible');
+  showLobby();
+}
+
+/* ─── Thought stream ────────────────────────────────────────────── */
+function renderStream(msg) {
+  const empty = document.getElementById('stream-empty');
+  if (empty) empty.remove();
+
+  const group = document.createElement('div');
+  group.className = 'tick-group';
+  group.dataset.tick = msg.tick;
+
+  const header = document.createElement('div');
+  header.className = 'tick-header';
+  header.innerHTML = `<span>Tick ${msg.tick}</span><span class="time">${msg.inference_time_ms || 0}ms</span>`;
+  group.appendChild(header);
+
+  // Perturbation events first
+  if (msg.perturbations && msg.perturbations.length > 0) {
+    for (const p of msg.perturbations) {
+      const el = document.createElement('div');
+      el.className = 'perturbation-entry';
+      el.innerHTML = `
+        <span class="perturb-icon">!</span>
+        <span class="perturb-agent">${esc(p.agent)}</span>
+        <span class="perturb-type">${esc(p.type)}.${esc(p.transform)}</span>
+        <span class="perturb-detail">
+          <span class="perturb-diff-old">${esc(truncate(p.original, 40))}</span>
+          &rarr; <span class="perturb-diff-new">${esc(truncate(p.corrupted, 40))}</span>
+        </span>
+      `;
+      group.appendChild(el);
+    }
+  }
+
+  // Agent entries
+  const agents = msg.agents.filter(a => a.alive);
+  for (const a of agents) {
+    if (followAgent && a.name !== followAgent) continue;
+    const el = document.createElement('div');
+    const actionBase = a.action ? a.action.split('(')[0] : '';
+    const isFollowed = a.name === followAgent;
+    el.className = `agent-entry${isFollowed ? ' followed' : ''}`;
+    el.onclick = (e) => { e.stopPropagation(); toggleFollow(a.name); };
+    el.ondblclick = (e) => { e.stopPropagation(); openProfile(a.name); };
+
+    const energyPct = Math.max(0, Math.min(100, (a.energy / a.max_energy) * 100));
+    const energyColor = energyPct > 50 ? 'var(--green)' : energyPct > 20 ? 'var(--orange)' : 'var(--red)';
+    const color = agentColors[a.name] || 'var(--text)';
+
+    el.innerHTML = `
+      <span class="agent-name" style="color: ${color}">${esc(a.name)}</span>
+      <span class="agent-action action-${actionBase}">${esc(a.action || 'rest')}</span>
+      <span class="agent-reasoning">${esc(a.reasoning || '')}</span>
+      <div class="agent-energy-bar"><div class="agent-energy-fill" style="width:${energyPct}%; background:${energyColor}"></div></div>
+    `;
+    group.appendChild(el);
+  }
+
+  $stream.appendChild(group);
+  if (autoScroll) $stream.scrollTop = $stream.scrollHeight;
+  while ($stream.children.length > 100) $stream.removeChild($stream.firstChild);
+}
+
+/* ─── Minimap (canvas) ──────────────────────────────────────────── */
+function renderMinimap(msg) {
+  const w = $minimap.width;
+  const h = $minimap.height;
+  const cellW = w / gridSize;
+  const cellH = h / gridSize;
+
+  // Background
+  ctx.fillStyle = '#0d1117';
+  ctx.fillRect(0, 0, w, h);
+
+  // Grid lines (subtle)
+  ctx.strokeStyle = '#151b24';
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i <= gridSize; i++) {
+    ctx.beginPath();
+    ctx.moveTo(i * cellW, 0); ctx.lineTo(i * cellW, h);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, i * cellH); ctx.lineTo(w, i * cellH);
+    ctx.stroke();
+  }
+
+  // Trails
+  if (showTrails) {
+    for (const [name, trail] of Object.entries(agentTrails)) {
+      if (trail.length < 2) continue;
+      const color = agentColors[name] || '#4fc3f7';
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1;
+      ctx.globalAlpha = 0.2;
+      ctx.beginPath();
+      ctx.moveTo(trail[0].x * cellW + cellW/2, trail[0].y * cellH + cellH/2);
+      for (let i = 1; i < trail.length; i++) {
+        const dx = Math.abs(trail[i].x - trail[i-1].x);
+        const dy = Math.abs(trail[i].y - trail[i-1].y);
+        // Don't draw across toroidal wrap
+        if (dx > gridSize/2 || dy > gridSize/2) {
+          ctx.moveTo(trail[i].x * cellW + cellW/2, trail[i].y * cellH + cellH/2);
+        } else {
+          ctx.lineTo(trail[i].x * cellW + cellW/2, trail[i].y * cellH + cellH/2);
+        }
+      }
+      ctx.stroke();
+      ctx.globalAlpha = 1.0;
+    }
+  }
+
+  // Food sources
+  for (const f of msg.world.food_sources) {
+    const pct = f.energy / f.max_energy;
+    const alpha = 0.3 + pct * 0.7;
+    const size = 0.3 + pct * 0.5;
+    ctx.fillStyle = `rgba(102, 187, 106, ${alpha})`;
+    const cx = f.x * cellW + cellW / 2;
+    const cy = f.y * cellH + cellH / 2;
+    const r = (cellW * size) / 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, Math.max(r, 2), 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Agents
+  for (const a of msg.agents) {
+    const [ax, ay] = a.position;
+    const cx = ax * cellW + cellW / 2;
+    const cy = ay * cellH + cellH / 2;
+    const r = cellW * 0.4;
+    const color = agentColors[a.name] || '#4fc3f7';
+
+    if (!a.alive) {
+      ctx.strokeStyle = '#444';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(cx - r, cy - r); ctx.lineTo(cx + r, cy + r);
+      ctx.moveTo(cx + r, cy - r); ctx.lineTo(cx - r, cy + r);
+      ctx.stroke();
+      continue;
+    }
+
+    // Agent dot
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(cx, cy, Math.max(r, 2.5), 0, Math.PI * 2);
+    ctx.fill();
+
+    // Followed agent ring
+    if (a.name === followAgent) {
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r + 2, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // Perturbed halo
+    if (msg.perturbations && msg.perturbations.some(p => p.agent === a.name)) {
+      ctx.strokeStyle = 'rgba(239, 83, 80, 0.8)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r + 3, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // Signal ripple (if agent signaled this tick)
+    if (a.action && a.action.startsWith('signal')) {
+      ctx.strokeStyle = `rgba(171, 71, 188, 0.3)`;
+      ctx.lineWidth = 1;
+      const sr = cellW * 5; // comm_range visual
+      ctx.beginPath();
+      ctx.arc(cx, cy, sr, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+}
+
+/* ─── Sparkline charts ──────────────────────────────────────────── */
+function renderCharts() {
+  drawSparkline('chart-pop', timeSeriesData.pop, 'chart-pop-val', '#4fc3f7', 0);
+  drawSparkline('chart-energy', timeSeriesData.energy, 'chart-energy-val', '#66bb6a', 1);
+  drawSparkline('chart-food', timeSeriesData.food, 'chart-food-val', '#ffa726', 0);
+}
+
+function drawSparkline(canvasId, data, valId, color, decimals) {
+  const canvas = document.getElementById(canvasId);
+  const ctxC = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  ctxC.clearRect(0, 0, w, h);
+
+  if (data.length < 2) {
+    document.getElementById(valId).textContent = data.length ? data[data.length-1].toFixed(decimals) : '-';
+    return;
+  }
+
+  const min = Math.min(...data) * 0.9;
+  const max = Math.max(...data) * 1.1 || 1;
+  const step = w / (data.length - 1);
+
+  // Fill
+  ctxC.fillStyle = color.replace(')', ', 0.1)').replace('rgb', 'rgba');
+  ctxC.beginPath();
+  ctxC.moveTo(0, h);
+  for (let i = 0; i < data.length; i++) {
+    ctxC.lineTo(i * step, h - ((data[i] - min) / (max - min)) * h);
+  }
+  ctxC.lineTo(w, h);
+  ctxC.fill();
+
+  // Line
+  ctxC.strokeStyle = color;
+  ctxC.lineWidth = 1.5;
+  ctxC.beginPath();
+  for (let i = 0; i < data.length; i++) {
+    const x = i * step;
+    const y = h - ((data[i] - min) / (max - min)) * h;
+    if (i === 0) ctxC.moveTo(x, y);
+    else ctxC.lineTo(x, y);
+  }
+  ctxC.stroke();
+
+  document.getElementById(valId).textContent = data[data.length-1].toFixed(decimals);
+}
+
+/* ─── Agent list (sidebar) ──────────────────────────────────────── */
+function renderAgentList(agents) {
+  const sorted = [...agents].sort((a, b) => {
+    if (a.alive !== b.alive) return a.alive ? -1 : 1;
+    return b.energy - a.energy;
+  });
+
+  $agentList.innerHTML = '';
+  for (const a of sorted) {
+    const card = document.createElement('div');
+    const color = agentColors[a.name] || '#4fc3f7';
+    const isFollowed = a.name === followAgent;
+    card.className = `agent-card${!a.alive ? ' dead' : ''}${isFollowed ? ' followed' : ''}`;
+    card.onclick = () => toggleFollow(a.name);
+    card.ondblclick = () => openProfile(a.name);
+
+    const energyPct = Math.max(0, (a.energy / a.max_energy) * 100).toFixed(0);
+    let statusIcon = '';
+    if (!a.alive) statusIcon = '<span style="color:var(--red)">dead</span>';
+    else if (a.times_perturbed > 0) statusIcon = `<span style="color:var(--red)">${a.times_perturbed}x</span>`;
+
+    card.innerHTML = `
+      <div class="agent-dot" style="background:${a.alive ? color : '#444'}"></div>
+      <span class="agent-card-name">${esc(a.name)}</span>
+      <span class="agent-card-energy">${a.alive ? energyPct + '%' : ''}</span>
+      <span class="agent-card-status">${statusIcon}</span>
+    `;
+    $agentList.appendChild(card);
+  }
+}
+
+/* ─── Stats ─────────────────────────────────────────────────────── */
+function renderStats(msg) {
+  const alive = msg.agents.filter(a => a.alive);
+  const dead = msg.agents.filter(a => !a.alive);
+  const avgEnergy = alive.length ? (alive.reduce((s, a) => s + a.energy, 0) / alive.length).toFixed(1) : '-';
+  const totalKills = msg.agents.reduce((s, a) => s + (a.kills || 0), 0);
+
+  document.getElementById('stat-alive').textContent = alive.length;
+  document.getElementById('stat-dead').textContent = dead.length;
+  document.getElementById('stat-food').textContent = msg.world.food_sources.length;
+  document.getElementById('stat-perturb').textContent = totalPerturbations;
+  document.getElementById('stat-kills').textContent = totalKills;
+  document.getElementById('stat-avg-energy').textContent = avgEnergy;
+}
+
+/* ─── Agent profile modal ───────────────────────────────────────── */
+function openProfile(name) {
+  const lastTick = tickHistory.length > 0 ? tickHistory[tickHistory.length - 1] : null;
+  if (!lastTick) return;
+  const a = lastTick.agents.find(ag => ag.name === name);
+  if (!a) return;
+
+  const color = agentColors[name] || '#4fc3f7';
+  document.getElementById('profile-dot').style.background = color;
+  document.getElementById('profile-name-text').textContent = name;
+  document.getElementById('profile-energy-big').textContent = a.energy.toFixed(1);
+  document.getElementById('profile-energy-big').style.color =
+    a.energy > 50 ? 'var(--green)' : a.energy > 20 ? 'var(--orange)' : 'var(--red)';
+  document.getElementById('profile-max-energy').textContent = a.max_energy;
+  document.getElementById('profile-pos').textContent = `(${a.position[0]}, ${a.position[1]})`;
+  document.getElementById('profile-age').textContent = `${a.age} ticks`;
+  document.getElementById('profile-kills').textContent = a.kills;
+  document.getElementById('profile-perturbed').textContent = `${a.times_perturbed}x`;
+  document.getElementById('profile-status').textContent = a.alive ? 'alive' : 'dead';
+  document.getElementById('profile-status').style.color = a.alive ? 'var(--green)' : 'var(--red)';
+
+  // Emergent personality from action history
+  const history = agentActionHistory[name] || [];
+  const personality = inferPersonality(history);
+  document.getElementById('profile-personality').textContent = personality;
+
+  // Recent actions
+  const histDiv = document.getElementById('profile-history');
+  histDiv.innerHTML = '';
+  const recent = history.slice(-20).reverse();
+  for (const h of recent) {
+    const d = document.createElement('div');
+    d.innerHTML = `<span style="color:var(--text-dim)">T${h.tick}</span> <span style="color:var(--text-bright)">${esc(h.action)}</span> <span style="color:var(--text-dim)">${esc(truncate(h.reasoning, 60))}</span>`;
+    histDiv.appendChild(d);
+  }
+
+  $profileModal.classList.add('visible');
+}
+
+function closeProfile() {
+  $profileModal.classList.remove('visible');
+}
+
+function inferPersonality(history) {
+  if (history.length < 5) return 'Too early to determine personality traits.';
+
+  const counts = {};
+  for (const h of history) {
+    const base = h.action.split('(')[0];
+    counts[base] = (counts[base] || 0) + 1;
+  }
+  const total = history.length;
+
+  const traits = [];
+  const pct = (action) => ((counts[action] || 0) / total * 100).toFixed(0);
+
+  if ((counts['move'] || 0) / total > 0.5) traits.push('Explorer');
+  if ((counts['eat'] || 0) / total > 0.2) traits.push('Forager');
+  if ((counts['rest'] || 0) / total > 0.3) traits.push('Conservative');
+  if ((counts['signal'] || 0) / total > 0.1) traits.push('Communicator');
+  if ((counts['attack'] || 0) / total > 0.05) traits.push('Aggressive');
+  if ((counts['flee'] || 0) / total > 0.1) traits.push('Cautious');
+  if ((counts['remember'] || 0) / total > 0.1) traits.push('Reflective');
+  if ((counts['recall'] || 0) / total > 0.1) traits.push('Strategic');
+  if ((counts['compact'] || 0) / total > 0.05) traits.push('Organized');
+
+  if (traits.length === 0) traits.push('Balanced');
+
+  const breakdown = Object.entries(counts)
+    .sort((a,b) => b[1] - a[1])
+    .map(([k,v]) => `${k}: ${(v/total*100).toFixed(0)}%`)
+    .join(', ');
+
+  return `${traits.join(' / ')}\n\nAction distribution: ${breakdown}`;
+}
+
+/* ─── Timeline scrubber ─────────────────────────────────────────── */
+$timelineSlider.addEventListener('input', () => {
+  const idx = parseInt($timelineSlider.value);
+  if (idx >= 0 && idx < tickHistory.length) {
+    const msg = tickHistory[idx];
+    $timelineValue.textContent = msg.tick;
+    renderMinimap(msg);
+    renderAgentList(msg.agents);
+    renderStats(msg);
+  }
+});
+
+/* ─── Follow mode ───────────────────────────────────────────────── */
+function toggleFollow(name) {
+  followAgent = (followAgent === name) ? null : name;
+  if (tickHistory.length > 0) {
+    renderAgentList(tickHistory[tickHistory.length - 1].agents);
+  }
+}
+
+/* ─── Color assignment ──────────────────────────────────────────── */
+function assignColors(agents) {
+  if (Object.keys(agentColors).length > 0) return;
+  const hueStep = 360 / agents.length;
+  agents.forEach((a, i) => {
+    const hue = (i * hueStep + 200) % 360;
+    agentColors[a.name] = `hsl(${hue}, 70%, 65%)`;
+  });
+}
+
+/* ─── Controls ──────────────────────────────────────────────────── */
+
+// Preset cards
+document.querySelectorAll('.preset-card').forEach(card => {
+  card.onclick = () => {
+    const preset = card.dataset.preset;
+    const mock = document.getElementById('opt-mock').checked;
+    const ticks = parseInt(document.getElementById('opt-ticks').value) || 500;
+    send({ action: 'start', preset, mock, ticks });
+    showMain();
+    setStatus('running');
+  };
+});
+
+// Pause/Resume
+$btnPause.onclick = () => {
+  if (state === 'paused') {
+    send({ action: 'resume' });
+    setStatus('running');
+  } else {
+    send({ action: 'pause' });
+    setStatus('paused');
+  }
+};
+
+// Step
+$btnStep.onclick = () => send({ action: 'step' });
+
+// Stop
+$btnStop.onclick = () => { send({ action: 'stop' }); setStatus('stopped'); };
+
+// Speed
+document.querySelectorAll('#speed-group button').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('#speed-group button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    send({ action: 'speed', delay_ms: parseInt(btn.dataset.delay) });
+  };
+});
+
+// Trail toggle
+document.getElementById('trail-toggle').onclick = function() {
+  showTrails = !showTrails;
+  this.classList.toggle('active', showTrails);
+  if (tickHistory.length > 0) renderMinimap(tickHistory[tickHistory.length - 1]);
+};
+
+// Scroll detection
+$stream.addEventListener('scroll', () => {
+  const atBottom = $stream.scrollHeight - $stream.scrollTop - $stream.clientHeight < 50;
+  autoScroll = atBottom;
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === ' ') { e.preventDefault(); $btnPause.click(); }
+  if (e.key === '.') { e.preventDefault(); $btnStep.click(); }
+  if (e.key === 'Escape') { closeProfile(); if (state === 'running' || state === 'paused') $btnStop.click(); }
+  if (e.key === 't') { document.getElementById('trail-toggle').click(); }
+  if (e.key === 'f' && followAgent) { toggleFollow(followAgent); }
+});
+
+/* ─── Helpers ───────────────────────────────────────────────────── */
+function esc(s) {
+  if (!s) return '';
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function truncate(s, n) {
+  if (!s) return '';
+  return s.length > n ? s.slice(0, n) + '...' : s;
+}
+
+/* ─── History & Replay ──────────────────────────────────────────── */
+const $historyView = document.getElementById('history-view');
+const $replayView = document.getElementById('replay-view');
+const $compareView = document.getElementById('compare-view');
+const $runList = document.getElementById('run-list');
+const $replaySlider = document.getElementById('replay-slider');
+const $replayTickLabel = document.getElementById('replay-tick-label');
+const $replayStream = document.getElementById('replay-stream');
+const replayCtx = document.getElementById('replay-minimap').getContext('2d');
+let replayData = {};
+let replayRunName = '';
+let replayMaxTick = 0;
+let replayPlaying = false;
+let replayInterval = null;
+let selectedRuns = [];  // for compare mode
+let allRuns = [];
+
+document.getElementById('btn-history').onclick = () => {
+  $lobby.classList.add('hidden');
+  $historyView.classList.add('visible');
+  loadHistory();
+};
+
+document.getElementById('history-back').onclick = () => {
+  $historyView.classList.remove('visible');
+  $lobby.classList.remove('hidden');
+};
+
+async function loadHistory() {
+  $runList.innerHTML = '<div class="run-empty">Loading...</div>';
+  selectedRuns = [];
+  updateCompareButton();
+  try {
+    const resp = await fetch('/api/runs');
+    allRuns = await resp.json();
+    if (allRuns.length === 0) {
+      $runList.innerHTML = '<div class="run-empty">No past runs found. Run a simulation first!</div>';
+      return;
+    }
+    renderRunList();
+  } catch (e) {
+    $runList.innerHTML = `<div class="run-empty">Error loading runs: ${e.message}</div>`;
+  }
+}
+
+function renderRunList() {
+  $runList.innerHTML = '';
+  for (const run of allRuns) {
+    const card = document.createElement('div');
+    const isSelected = selectedRuns.includes(run.name);
+    card.className = `run-card${isSelected ? ' selected' : ''}`;
+    card.dataset.runName = run.name;
+    const ts = run.name.replace('exp_', '').replace(/_/g, ' ');
+    card.innerHTML = `
+      <div class="select-check">${isSelected ? 'X' : ''}</div>
+      <div class="run-card-info" style="flex:1;margin-left:8px;">
+        <h3>${esc(run.name)}</h3>
+        <p>${ts}</p>
+      </div>
+      <div class="run-card-stats">
+        <div class="run-stat"><span class="run-stat-val">${run.actual_ticks || '?'}</span><span class="run-stat-lbl">ticks</span></div>
+        <div class="run-stat"><span class="run-stat-val">${run.agents || '?'}</span><span class="run-stat-lbl">agents</span></div>
+        <div class="run-stat"><span class="run-stat-val">${run.perturbation ? 'ON' : 'OFF'}</span><span class="run-stat-lbl">perturb</span></div>
+      </div>
+    `;
+    // Click to select for compare; double-click to replay
+    card.onclick = (e) => {
+      toggleRunSelection(run.name);
+      renderRunList();
+    };
+    card.ondblclick = () => openReplay(run.name, run.last_tick || 0);
+    $runList.appendChild(card);
+  }
+}
+
+function toggleRunSelection(name) {
+  const idx = selectedRuns.indexOf(name);
+  if (idx >= 0) {
+    selectedRuns.splice(idx, 1);
+  } else {
+    if (selectedRuns.length >= 2) selectedRuns.shift();
+    selectedRuns.push(name);
+  }
+  updateCompareButton();
+}
+
+function updateCompareButton() {
+  const btn = document.getElementById('btn-compare');
+  btn.disabled = selectedRuns.length !== 2;
+  const hint = document.querySelector('.compare-hint');
+  if (selectedRuns.length === 0) hint.textContent = 'Select 2 runs to compare side-by-side';
+  else if (selectedRuns.length === 1) hint.textContent = `Selected: ${selectedRuns[0]}. Select one more.`;
+  else hint.textContent = `${selectedRuns[0]} vs ${selectedRuns[1]}`;
+}
+
+async function openReplay(runName, maxTick) {
+  replayRunName = runName;
+  replayMaxTick = maxTick;
+  replayData = {};
+  $historyView.classList.remove('visible');
+  $replayView.classList.add('visible');
+  $replaySlider.min = 0;
+  $replaySlider.max = maxTick;
+  $replaySlider.value = 0;
+  $replayStream.innerHTML = '';
+  // Load first tick
+  await loadReplayTick(0);
+}
+
+async function loadReplayTick(tick) {
+  if (replayData[tick]) {
+    renderReplayTick(replayData[tick]);
+    return;
+  }
+  try {
+    const resp = await fetch(`/api/runs/${replayRunName}/tick/${tick}`);
+    if (resp.ok) {
+      const data = await resp.json();
+      replayData[tick] = data;
+      renderReplayTick(data);
+    }
+  } catch (e) {
+    console.error('Failed to load tick', tick, e);
+  }
+}
+
+function renderReplayTick(data) {
+  $replayTickLabel.textContent = `Tick ${data.tick}`;
+  // Render minimap on replay canvas
+  const canvas = document.getElementById('replay-minimap');
+  const rctx = replayCtx;
+  const w = canvas.width, h = canvas.height;
+  const gs = data.world.size;
+  const cw = w / gs, ch = h / gs;
+
+  rctx.fillStyle = '#0d1117';
+  rctx.fillRect(0, 0, w, h);
+
+  // Grid
+  rctx.strokeStyle = '#151b24';
+  rctx.lineWidth = 0.5;
+  for (let i = 0; i <= gs; i++) {
+    rctx.beginPath(); rctx.moveTo(i*cw,0); rctx.lineTo(i*cw,h); rctx.stroke();
+    rctx.beginPath(); rctx.moveTo(0,i*ch); rctx.lineTo(w,i*ch); rctx.stroke();
+  }
+
+  // Food
+  for (const f of data.world.food_sources) {
+    const pct = f.energy / f.max_energy;
+    rctx.fillStyle = `rgba(102,187,106,${0.3+pct*0.7})`;
+    rctx.beginPath();
+    rctx.arc(f.x*cw+cw/2, f.y*ch+ch/2, Math.max(cw*(0.3+pct*0.5)/2, 2), 0, Math.PI*2);
+    rctx.fill();
+  }
+
+  // Agents
+  assignColors(data.agents);
+  for (const a of data.agents) {
+    const [ax,ay] = a.position;
+    const cx = ax*cw+cw/2, cy = ay*ch+ch/2, r = cw*0.4;
+    if (!a.alive) {
+      rctx.strokeStyle = '#444'; rctx.lineWidth = 1.5;
+      rctx.beginPath(); rctx.moveTo(cx-r,cy-r); rctx.lineTo(cx+r,cy+r);
+      rctx.moveTo(cx+r,cy-r); rctx.lineTo(cx-r,cy+r); rctx.stroke();
+    } else {
+      rctx.fillStyle = agentColors[a.name] || '#4fc3f7';
+      rctx.beginPath(); rctx.arc(cx, cy, Math.max(r,2.5), 0, Math.PI*2); rctx.fill();
+    }
+  }
+
+  // Agent list
+  const listEl = document.getElementById('replay-agent-list');
+  listEl.innerHTML = '';
+  const sorted = [...data.agents].sort((a,b) => a.alive !== b.alive ? (a.alive ? -1 : 1) : b.energy - a.energy);
+  for (const a of sorted) {
+    const c = agentColors[a.name] || '#4fc3f7';
+    const d = document.createElement('div');
+    d.className = `agent-card${!a.alive?' dead':''}`;
+    d.innerHTML = `<div class="agent-dot" style="background:${a.alive?c:'#444'}"></div><span class="agent-card-name">${esc(a.name)}</span><span class="agent-card-energy">${a.alive?Math.max(0,a.energy/a.max_energy*100).toFixed(0)+'%':''}</span>`;
+    listEl.appendChild(d);
+  }
+}
+
+$replaySlider.addEventListener('input', () => {
+  const tick = parseInt($replaySlider.value);
+  loadReplayTick(tick);
+});
+
+document.getElementById('replay-play-btn').onclick = () => {
+  if (replayPlaying) {
+    clearInterval(replayInterval);
+    replayPlaying = false;
+    document.getElementById('replay-play-btn').textContent = 'Play';
+  } else {
+    replayPlaying = true;
+    document.getElementById('replay-play-btn').textContent = 'Pause';
+    replayInterval = setInterval(() => {
+      let tick = parseInt($replaySlider.value) + 1;
+      if (tick > replayMaxTick) {
+        clearInterval(replayInterval);
+        replayPlaying = false;
+        document.getElementById('replay-play-btn').textContent = 'Play';
+        return;
+      }
+      $replaySlider.value = tick;
+      loadReplayTick(tick);
+    }, 100);
+  }
+};
+
+document.getElementById('replay-back-btn').onclick = () => {
+  if (replayPlaying) { clearInterval(replayInterval); replayPlaying = false; }
+  $replayView.classList.remove('visible');
+  $historyView.classList.add('visible');
+  loadHistory();
+};
+
+/* ─── Compare Mode ──────────────────────────────────────────────── */
+let compareDataA = {};
+let compareDataB = {};
+let compareRunA = '';
+let compareRunB = '';
+let compareMaxTick = 0;
+let comparePlaying = false;
+let compareInterval = null;
+
+document.getElementById('btn-compare').onclick = () => {
+  if (selectedRuns.length !== 2) return;
+  compareRunA = selectedRuns[0];
+  compareRunB = selectedRuns[1];
+  compareDataA = {};
+  compareDataB = {};
+  const runA = allRuns.find(r => r.name === compareRunA);
+  const runB = allRuns.find(r => r.name === compareRunB);
+  compareMaxTick = Math.min(runA?.last_tick || 0, runB?.last_tick || 0);
+  document.getElementById('compare-left-title').textContent = compareRunA;
+  document.getElementById('compare-right-title').textContent = compareRunB;
+  document.getElementById('compare-slider').max = compareMaxTick;
+  document.getElementById('compare-slider').value = 0;
+  $historyView.classList.remove('visible');
+  $compareView.classList.add('visible');
+  loadCompareTick(0);
+};
+
+async function loadCompareTick(tick) {
+  const [dataA, dataB] = await Promise.all([
+    fetchOrCache(compareRunA, tick, compareDataA),
+    fetchOrCache(compareRunB, tick, compareDataB),
+  ]);
+  if (dataA) renderComparePane('left', dataA);
+  if (dataB) renderComparePane('right', dataB);
+  document.getElementById('compare-tick-label').textContent = `Tick ${tick}`;
+}
+
+async function fetchOrCache(runName, tick, cache) {
+  if (cache[tick]) return cache[tick];
+  try {
+    const resp = await fetch(`/api/runs/${runName}/tick/${tick}`);
+    if (resp.ok) {
+      const data = await resp.json();
+      cache[tick] = data;
+      return data;
+    }
+  } catch (e) { console.error('Compare fetch failed', e); }
+  return null;
+}
+
+function renderComparePane(side, data) {
+  const canvas = document.getElementById(`compare-${side}-map`);
+  const rctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  const gs = data.world.size;
+  const cw = w / gs, ch = h / gs;
+
+  rctx.fillStyle = '#0d1117';
+  rctx.fillRect(0, 0, w, h);
+
+  for (const f of data.world.food_sources) {
+    const pct = f.energy / f.max_energy;
+    rctx.fillStyle = `rgba(102,187,106,${0.3+pct*0.7})`;
+    rctx.beginPath();
+    rctx.arc(f.x*cw+cw/2, f.y*ch+ch/2, Math.max(cw*(0.3+pct*0.5)/2, 1.5), 0, Math.PI*2);
+    rctx.fill();
+  }
+
+  assignColors(data.agents);
+  for (const a of data.agents) {
+    const [ax,ay] = a.position;
+    const cx = ax*cw+cw/2, cy = ay*ch+ch/2, r = cw*0.35;
+    if (!a.alive) {
+      rctx.strokeStyle = '#444'; rctx.lineWidth = 1;
+      rctx.beginPath(); rctx.moveTo(cx-r,cy-r); rctx.lineTo(cx+r,cy+r);
+      rctx.moveTo(cx+r,cy-r); rctx.lineTo(cx-r,cy+r); rctx.stroke();
+    } else {
+      rctx.fillStyle = agentColors[a.name] || '#4fc3f7';
+      rctx.beginPath(); rctx.arc(cx, cy, Math.max(r,2), 0, Math.PI*2); rctx.fill();
+    }
+  }
+
+  const listEl = document.getElementById(`compare-${side}-agents`);
+  listEl.innerHTML = '';
+  const alive = data.agents.filter(a => a.alive);
+  const dead = data.agents.filter(a => !a.alive);
+  const avgE = alive.length ? (alive.reduce((s,a)=>s+a.energy,0)/alive.length).toFixed(1) : '0';
+
+  const summary = document.createElement('div');
+  summary.style.cssText = 'padding:4px 8px;font-size:11px;color:var(--text-dim);border-bottom:1px solid var(--border);margin-bottom:4px;';
+  summary.innerHTML = `Alive: <strong style="color:var(--green)">${alive.length}</strong> | Dead: <strong style="color:var(--red)">${dead.length}</strong> | Avg: <strong style="color:var(--text-bright)">${avgE}</strong>`;
+  listEl.appendChild(summary);
+
+  const sorted = [...data.agents].sort((a,b) => a.alive !== b.alive ? (a.alive?-1:1) : b.energy-a.energy);
+  for (const a of sorted) {
+    const c = agentColors[a.name] || '#4fc3f7';
+    const d = document.createElement('div');
+    d.className = `agent-card${!a.alive?' dead':''}`;
+    d.style.padding = '3px 6px';
+    d.innerHTML = `<div class="agent-dot" style="background:${a.alive?c:'#444'};width:8px;height:8px;"></div><span style="font-size:11px;flex:1;">${esc(a.name)}</span><span style="font-size:10px;color:var(--text-dim);">${a.alive?Math.round(a.energy/a.max_energy*100)+'%':''}</span>`;
+    listEl.appendChild(d);
+  }
+}
+
+document.getElementById('compare-slider').addEventListener('input', function() {
+  loadCompareTick(parseInt(this.value));
+});
+
+document.getElementById('compare-play-btn').onclick = () => {
+  if (comparePlaying) {
+    clearInterval(compareInterval);
+    comparePlaying = false;
+    document.getElementById('compare-play-btn').textContent = 'Play';
+  } else {
+    comparePlaying = true;
+    document.getElementById('compare-play-btn').textContent = 'Pause';
+    compareInterval = setInterval(() => {
+      const slider = document.getElementById('compare-slider');
+      let tick = parseInt(slider.value) + 1;
+      if (tick > compareMaxTick) {
+        clearInterval(compareInterval); comparePlaying = false;
+        document.getElementById('compare-play-btn').textContent = 'Play';
+        return;
+      }
+      slider.value = tick;
+      loadCompareTick(tick);
+    }, 100);
+  }
+};
+
+document.getElementById('compare-back-btn').onclick = () => {
+  if (comparePlaying) { clearInterval(compareInterval); comparePlaying = false; }
+  $compareView.classList.remove('visible');
+  $historyView.classList.add('visible');
+};
+
+/* ─── Boot ──────────────────────────────────────────────────────── */
+connect();
+</script>
+</body>
+</html>
