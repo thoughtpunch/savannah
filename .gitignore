@@ -1,5 +1,14 @@
 # Runtime data (experiment outputs)
+data/
 savannah/data/
+
+# Environment secrets (track .env.sample, NOT .env)
+.env
+!.env.sample
+
+# direnv local overrides (track .envrc, NOT .envrc.local)
+.direnv/
+.envrc.local
 
 # Python
 __pycache__/
