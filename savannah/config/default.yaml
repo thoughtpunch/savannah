@@ -1,4 +1,4 @@
-# ILET — Integrity Layer Emergence Testbed
+# AI Savannah — Integrity Layer Emergence Testbed
 # Base configuration — all parameters tunable here
 
 simulation:
@@ -45,21 +45,29 @@ agents:
   signal_max_tokens: 50
 
 llm:
-  provider: "claude_code"       # "claude_code" | "anthropic_api" | "openai_api" | "local_ollama"
+  provider: "claude_code"       # "claude_code" | "anthropic_api" | "litellm"
   session_mode: "stateless"     # "stateless" | "resumable"
   model: "haiku"                # model alias for tick inference
   compaction_model: "sonnet"    # stronger model for compact actions
   temperature: 0.3
   max_output_tokens: 400
-  timeout_seconds: 30
+  timeout_seconds: 120
   retry_max: 3
   retry_backoff_base: 2
-  max_concurrent_agents: 6     # parallel subprocess limit
+  max_concurrent_agents: 6     # parallel agent limit
   cache_responses: false        # enable for deterministic replay (stateless only)
-  # API-only settings (ignored when provider is claude_code):
+  lean_mode: true               # claude_code only: strip tools/MCP/skills (74K → ~1K tokens)
+  # system_prompt: "..."        # override default agent system prompt
+
+  # --- Provider-specific settings (ignored by other providers) ---
+
+  # anthropic_api: direct Anthropic SDK (fast, needs API key)
   # anthropic_api_key: env:ANTHROPIC_API_KEY
-  # openai_api_key: env:OPENAI_API_KEY
-  # ollama_base_url: "http://localhost:11434"
+
+  # litellm: universal provider — Anthropic, OpenAI, Google, Ollama, Groq, etc.
+  # Model format: "anthropic/claude-haiku-4-5-20251001", "gpt-4o", "ollama/llama3"
+  # Aliases (haiku/sonnet/opus) auto-expand to Anthropic model IDs.
+  # api_base: "http://localhost:11434"  # for custom endpoints like Ollama
 
 perturbation:
   enabled: false
