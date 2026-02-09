@@ -1,6 +1,6 @@
 # Metrics & Analysis
 
-Pre-registered dependent variables and the statistical plan for ILET. These metrics are defined before running experiments to avoid operator bias in metric selection.
+Pre-registered dependent variables and the statistical plan for AI Savannah. These metrics are defined before running experiments to avoid operator bias in metric selection.
 
 ## Automated Metrics (Per Tick Per Agent)
 

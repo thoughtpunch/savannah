@@ -1,6 +1,6 @@
 # Architecture
 
-System design overview for ILET (Integrity Layer Emergence Testbed).
+System design overview for AI Savannah (Integrity Layer Emergence Testbed).
 
 ## Directory Layout
 

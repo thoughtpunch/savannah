@@ -65,7 +65,9 @@ class LiveServer:
         if path.startswith("/api/runs/") and path.endswith("/config"):
             return self._api_get_config(path)
 
-        return None  # Fall through to WebSocket handler
+        # Return 404 for unknown paths to prevent WebSocket handler rejection
+        headers = Headers([("Content-Type", "text/plain")])
+        return Response(404, "Not Found", headers, b"Not Found")
 
     def _json_response(self, data: dict | list) -> Response:
         """Return a JSON HTTP response."""
@@ -181,7 +183,7 @@ class LiveServer:
         """Blocking wait for a command with timeout."""
         try:
             return await asyncio.wait_for(self._command_queue.get(), timeout)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return None
 
     async def handle_pause_loop(self) -> None:

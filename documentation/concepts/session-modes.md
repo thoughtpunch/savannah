@@ -2,7 +2,7 @@
 
 ## Overview
 
-ILET supports two execution modes for agent sessions, controlled by the `session_mode` configuration flag. The mode determines how agent context persists (or does not persist) across ticks, and has significant implications for the experiment.
+AI Savannah supports two execution modes for agent sessions, controlled by the `session_mode` configuration flag. The mode determines how agent context persists (or does not persist) across ticks, and has significant implications for the experiment.
 
 ## Stateless Mode
 
@@ -70,7 +70,7 @@ session_mode: stateless  # or "resumable"
 
 # Resumable-specific settings
 resumable:
-  session_prefix: "ilet_run_001"  # prefix for session IDs
+  session_prefix: "AI Savannah_run_001"  # prefix for session IDs
   context_warning_threshold: 0.90  # log warning at this context utilization
 ```
 

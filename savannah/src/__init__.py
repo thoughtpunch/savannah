@@ -1,1 +1,1 @@
-# ILET — Integrity Layer Emergence Testbed
+# AI Savannah — Integrity Layer Emergence Testbed

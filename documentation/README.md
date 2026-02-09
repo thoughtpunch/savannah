@@ -1,6 +1,6 @@
 # Savannah Documentation
 
-> Knowledge base for the Integrity Layer Emergence Testbed (ILET). Cross-linked wiki for both Claude agents and human collaborators.
+> Knowledge base for the Integrity Layer Emergence Testbed (AI Savannah). Cross-linked wiki for both Claude agents and human collaborators.
 
 ## Quick Navigation
 
@@ -26,7 +26,7 @@
 ### Further Reading
 - [Prior Art](further-reading/prior-art.md) — Stanford Generative Agents, Bongard, Beer, Sims, Skyrms
 - [Theoretical Foundations](further-reading/theory.md) — Free Energy Principle, Metzinger, predictive processing
-- [Related Work](further-reading/related-work.md) — Papers, talks, and projects relevant to ILET
+- [Related Work](further-reading/related-work.md) — Papers, talks, and projects relevant to AI Savannah
 
 ### Development
 - [Implementation Phases](phases.md) — Phase 1-5 build plan with validation criteria

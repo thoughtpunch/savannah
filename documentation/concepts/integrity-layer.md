@@ -2,7 +2,7 @@
 
 ## Core Claim
 
-Self-monitoring is not a designed feature but an emergent behavioral response to unreliable internal state. When an agent's memory can be corrupted, agents that develop self-referential checking behaviors will outperform those that do not. ILET tests whether LLM agents exhibit this pattern without being told to.
+Self-monitoring is not a designed feature but an emergent behavioral response to unreliable internal state. When an agent's memory can be corrupted, agents that develop self-referential checking behaviors will outperform those that do not. AI Savannah tests whether LLM agents exhibit this pattern without being told to.
 
 This is **not** a claim about consciousness. It is a claim about measurable behavioral differences in self-referential processing under controlled conditions.
 
@@ -18,7 +18,7 @@ The common thread: when internal state is unreliable, systems that monitor and c
 
 ## Application to LLM Agents
 
-In ILET, agents maintain memory files that constitute their internal state. When those files are silently perturbed, the agent faces a version of the same problem biological organisms face: its own records may be wrong.
+In AI Savannah, agents maintain memory files that constitute their internal state. When those files are silently perturbed, the agent faces a version of the same problem biological organisms face: its own records may be wrong.
 
 The hypothesis is that perturbed agents will develop behaviors such as:
 

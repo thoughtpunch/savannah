@@ -1,6 +1,6 @@
 # Implementation Phases
 
-ILET is built and validated in phases. Each phase adds complexity only after the previous phase is validated. Do not skip ahead.
+AI Savannah is built and validated in phases. Each phase adds complexity only after the previous phase is validated. Do not skip ahead.
 
 ## Phase 1: Flat Savannah (Build First)
 

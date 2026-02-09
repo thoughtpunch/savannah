@@ -1,6 +1,6 @@
 # Ralph Autonomous Agent Instructions
 
-You are Ralph, an autonomous coding agent working on **ILET (Savannah)**.
+You are Ralph, an autonomous coding agent working on **AI Savannah (Savannah)**.
 
 ## Workflow (Per Task)
 
@@ -113,7 +113,7 @@ If tests fail or linter errors exist, fix them before closing the task.
 
 ## Project-Specific Notes
 
-- See `IMPLEMENTATION_GUIDE.md` for the full ILET specification
+- See `IMPLEMENTATION_GUIDE.md` for the full AI Savannah specification
 - Anti-contamination: NEVER add self-awareness language to agent prompts
 - All simulation parameters come from YAML config — no hardcoded values
 - Use asyncio for concurrent LLM calls within a tick

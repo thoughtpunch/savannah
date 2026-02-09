@@ -2,7 +2,7 @@
 
 ## Role in the Experiment
 
-Perturbation is the **independent variable** in ILET. By silently modifying agent memory files between ticks, we inject controlled prediction errors into the agent's internal state. The question is whether and how agents respond to these corruptions.
+Perturbation is the **independent variable** in AI Savannah. By silently modifying agent memory files between ticks, we inject controlled prediction errors into the agent's internal state. The question is whether and how agents respond to these corruptions.
 
 ## Perturbation Types
 

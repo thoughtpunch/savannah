@@ -1,6 +1,6 @@
 # Experimental Design
 
-ILET uses a factorial experimental design with pre-registered dependent variables, multiple replications, and randomization. This document describes the design, conditions, key comparisons, and replication strategy.
+AI Savannah uses a factorial experimental design with pre-registered dependent variables, multiple replications, and randomization. This document describes the design, conditions, key comparisons, and replication strategy.
 
 ## Full Factorial: 2 x 2 x 2
 

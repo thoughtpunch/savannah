@@ -1,6 +1,6 @@
 # Hypothesis & Theory
 
-The theoretical foundation and testable predictions behind ILET.
+The theoretical foundation and testable predictions behind AI Savannah.
 
 ## Core Hypothesis
 
@@ -42,13 +42,13 @@ The experiment is designed to be informative regardless of which explanation hol
 
 ## The "Consciousness as Integrity Layer" Theory
 
-The theoretical framework behind ILET draws on several established ideas:
+The theoretical framework behind AI Savannah draws on several established ideas:
 
 **Metzinger's self-model theory**: Consciousness involves maintaining a transparent self-model -- a model of the self that the system does not recognize as a model. Self-monitoring emerges when the system needs to maintain the integrity of this model.
 
 **Friston's Free Energy Principle**: Agents minimize surprise via predictive self/world models. When internal state becomes unreliable (perturbation), the prediction error signal increases, driving the system to allocate more resources to self-monitoring and model updating.
 
-**Bongard (2006)**: Self-modeling robots that adapt to damage. Key precedent, but the self-models were architecturally designed in. ILET tests whether self-monitoring behavior emerges from environmental pressure without architectural scaffolding.
+**Bongard (2006)**: Self-modeling robots that adapt to damage. Key precedent, but the self-models were architecturally designed in. AI Savannah tests whether self-monitoring behavior emerges from environmental pressure without architectural scaffolding.
 
 **The synthesis**: If self-monitoring is a functional adaptation to maintaining internal consistency under pressure, then:
 - Systems with reliable internal state should show less self-monitoring (no pressure to monitor)
@@ -77,7 +77,7 @@ The mitigation is built into the experimental design:
 
 ## Connection to Prior Art
 
-| Work | Relevance | How ILET Differs |
+| Work | Relevance | How AI Savannah Differs |
 |------|-----------|-----------------|
 | Stanford Generative Agents (Park et al., 2023) | LLM agents with memory in a social sim | Demo, not experiment. No controls, no perturbation, no hypothesis testing |
 | Josh Bongard (2006) | Self-modeling robots adapting to damage | Self-models were designed in, not emergent |

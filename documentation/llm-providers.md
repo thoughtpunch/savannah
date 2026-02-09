@@ -1,6 +1,6 @@
 # LLM Provider System
 
-ILET uses a provider-agnostic LLM interface defined in `savannah/src/llm.py`. All inference calls go through this abstraction, allowing the simulation to run on different backends without changing any other code.
+AI Savannah uses a provider-agnostic LLM interface defined in `savannah/src/llm.py`. All inference calls go through this abstraction, allowing the simulation to run on different backends without changing any other code.
 
 ## The LLMProvider ABC
 

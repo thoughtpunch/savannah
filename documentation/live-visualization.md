@@ -1,6 +1,6 @@
 # Live Visualization
 
-Real-time browser UI for watching ILET simulations as they run.
+Real-time browser UI for watching AI Savannah simulations as they run.
 
 ## Starting the Live Server
 

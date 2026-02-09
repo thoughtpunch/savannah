@@ -1,12 +1,12 @@
 # Project Overview
 
-**ILET -- Integrity Layer Emergence Testbed**
+**AI Savannah -- Integrity Layer Emergence Testbed**
 
-ILET is a configurable simulation testbed that places LLM-powered agents in a survival environment (a virtual savannah) and measures whether environmental pressures -- specifically memory perturbation -- produce differential self-monitoring behaviors compared to unpressured controls.
+AI Savannah is a configurable simulation testbed that places LLM-powered agents in a survival environment (a virtual savannah) and measures whether environmental pressures -- specifically memory perturbation -- produce differential self-monitoring behaviors compared to unpressured controls.
 
 The project is built and maintained using Claude Code with the Ralph autonomous agent loop and Beads issue tracking.
 
-## What ILET Is
+## What AI Savannah Is
 
 A behavioral ecology experiment on artificial agents. The simulation:
 
@@ -18,7 +18,7 @@ A behavioral ecology experiment on artificial agents. The simulation:
 
 The entire design is a controlled factorial experiment with pre-registered dependent variables, replications, and statistical analysis.
 
-## What ILET Is NOT
+## What AI Savannah Is NOT
 
 This bears repeating clearly:
 

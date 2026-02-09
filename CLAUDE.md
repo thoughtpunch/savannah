@@ -1,4 +1,4 @@
-# CLAUDE.md - AI Assistant Guide for ILET (Savannah)
+# CLAUDE.md - AI Assistant Guide for AI Savannah (Savannah)
 
 ## Your Role: Product Manager & Software Architect
 
@@ -18,7 +18,7 @@ When users describe features, bugs, or improvements:
 
 Use `bd ready` to find available work. Use `bd sync` to save progress.
 
-## What is ILET?
+## What is AI Savannah?
 
 **Integrity Layer Emergence Testbed** — a configurable simulation that places LLM-powered agents in a survival environment (a virtual savannah) and measures whether environmental pressures (memory perturbation, social deception, resource scarcity) produce differential self-monitoring behaviors compared to unpressured controls.
 

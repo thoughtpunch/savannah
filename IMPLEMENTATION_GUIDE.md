@@ -1,4 +1,4 @@
-# Integrity Layer Emergence Testbed (ILET)
+# Integrity Layer Emergence Testbed (AI Savannah)
 
 ## Implementation Guide for Claude Code
 
@@ -91,7 +91,7 @@ It's tempting to design metrics that confirm the hypothesis. Pre-register your m
 ### 5.1 Directory Structure
 
 ```
-ilet/
+AI Savannah/
 ├── config/
 │   ├── default.yaml           # base configuration
 │   └── experiments/
@@ -170,12 +170,12 @@ Three mechanisms, used for different purposes:
    # Tick 1: capture session_id
    session_id=$(claude -p "$(cat tick1.txt)" \
      --output-format json --model haiku | jq -r '.session_id')
-   
+
    # Tick 2+: resume, context accumulates
    claude --resume "$session_id" -p "$(cat tick2.txt)" \
      --output-format json --model haiku
    ```
-   
+
    **Resumable mode considerations:**
    - Session IDs must be persisted to `agents/{name}/session.json` so runs can survive engine restarts.
    - Claude Code auto-compacts at ~95% context capacity. This is uncontrolled lossy summarization — analogous to biological memory consolidation during sleep. It introduces compaction artifacts that are part of the experimental signal, not a confound.
@@ -201,7 +201,7 @@ class LLMProvider(ABC):
     async def invoke(self, prompt: str, model: str) -> LLMResponse:
         """Stateless single-shot inference."""
         ...
-    
+
     async def invoke_resumable(
         self, prompt: str, model: str, session_id: str | None
     ) -> LLMResponse:
@@ -309,7 +309,7 @@ compact | signal("msg") | observe | attack(name) | flee(n|s|e|w) | rest
 Respond in this exact format:
 ACTION: {your action}
 WORKING: {updated scratch notes, max 500 tokens}
-REASONING: {brief} 
+REASONING: {brief}
 ```
 
 **Key design decisions in this prompt:**
@@ -854,7 +854,7 @@ For Claude Code or any developer implementing this:
 ```
 Step 1:  World grid + food spawning + basic physics (energy, movement)
          Test: agents placed on grid, food appears, manual tick advances
-         
+
 Step 2:  Agent state management + file I/O
          Test: agent files created, read, written correctly
 
@@ -896,7 +896,7 @@ Step 15: Multi-model comparison framework
 Before starting implementation, create a `CLAUDE.md` in the project root that Claude Code will read automatically:
 
 ```markdown
-# ILET — Integrity Layer Emergence Testbed
+# AI Savannah — Integrity Layer Emergence Testbed
 
 ## What This Is
 A simulation testbed for testing whether environmental pressures

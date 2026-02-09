@@ -6,13 +6,13 @@
 
 The Abstraction and Reasoning Corpus tests fluid intelligence through novel pattern-completion tasks. Each task requires identifying an abstract transformation rule from a few examples and applying it to new inputs.
 
-**Relation to ILET**: ARC tests for generalization ability in a static evaluation context. ILET tests for adaptive behavior over time under pressure. Both are interested in capabilities that go beyond pattern matching, but ARC measures it via task performance while ILET measures it via behavioral change.
+**Relation to AI Savannah**: ARC tests for generalization ability in a static evaluation context. AI Savannah tests for adaptive behavior over time under pressure. Both are interested in capabilities that go beyond pattern matching, but ARC measures it via task performance while AI Savannah measures it via behavioral change.
 
 ### BIG-bench and MMLU
 
 Large-scale LLM benchmarks that test knowledge and reasoning across hundreds of tasks. These represent the standard evaluation paradigm: static inputs, correct/incorrect outputs, aggregate scores.
 
-**How ILET differs**: ILET is not a benchmark. There are no correct answers. The dependent variable is *how* agents reason, not *what* they output. An agent that produces worse foraging decisions but more self-referential reasoning is more interesting to ILET than an agent that forages optimally with no metacognitive trace.
+**How AI Savannah differs**: AI Savannah is not a benchmark. There are no correct answers. The dependent variable is *how* agents reason, not *what* they output. An agent that produces worse foraging decisions but more self-referential reasoning is more interesting to AI Savannah than an agent that forages optimally with no metacognitive trace.
 
 ## Agent Architectures
 
@@ -20,13 +20,13 @@ Large-scale LLM benchmarks that test knowledge and reasoning across hundreds of 
 
 Interleaving reasoning and acting in LLM agents. The model alternates between generating thoughts (reasoning traces) and taking actions, using the reasoning to guide action selection.
 
-**Relation to ILET**: ILET's REASONING-then-ACTION prompt format is structurally similar to ReAct. The difference is that ILET treats the reasoning trace as *data to analyze*, not as a technique to improve task performance.
+**Relation to AI Savannah**: AI Savannah's REASONING-then-ACTION prompt format is structurally similar to ReAct. The difference is that AI Savannah treats the reasoning trace as *data to analyze*, not as a technique to improve task performance.
 
 ### Voyager (Wang et al., 2023)
 
 An LLM-powered agent in Minecraft that writes and stores its own code (skills) and uses them to explore and accomplish increasingly complex tasks. Demonstrated lifelong learning through a growing skill library.
 
-**Relation to ILET**: Voyager and ILET both give agents persistent storage that accumulates over time. Voyager optimizes for capability growth. ILET corrupts the storage to study the response. Voyager asks "what can agents build?" ILET asks "what happens when what they built breaks?"
+**Relation to AI Savannah**: Voyager and AI Savannah both give agents persistent storage that accumulates over time. Voyager optimizes for capability growth. AI Savannah corrupts the storage to study the response. Voyager asks "what can agents build?" AI Savannah asks "what happens when what they built breaks?"
 
 ## Alignment and Safety
 
@@ -34,13 +34,13 @@ An LLM-powered agent in Minecraft that writes and stores its own code (skills) a
 
 Training AI systems to follow principles by having models critique and revise their own outputs. The model evaluates its behavior against a set of constitutional principles.
 
-**Relation to ILET**: Constitutional AI engineers self-evaluation via training. ILET tests whether self-evaluation emerges without training for it. If perturbed agents spontaneously begin checking their own outputs for consistency, that is a behavioral analog to Constitutional AI's designed self-critique — but arising from pressure rather than instruction.
+**Relation to AI Savannah**: Constitutional AI engineers self-evaluation via training. AI Savannah tests whether self-evaluation emerges without training for it. If perturbed agents spontaneously begin checking their own outputs for consistency, that is a behavioral analog to Constitutional AI's designed self-critique — but arising from pressure rather than instruction.
 
 ### RLHF and Alignment Research
 
 Reinforcement Learning from Human Feedback trains models to produce outputs that humans prefer. The broader alignment research program asks how to ensure AI systems behave in accordance with human values.
 
-**Relation to ILET**: ILET is not alignment research, but its findings could be alignment-relevant. If agents develop self-monitoring under memory pressure, understanding the conditions that drive this behavior could inform alignment strategies. Conversely, if agents *do not* develop self-monitoring — if they blindly trust corrupted memories — that is also alignment-relevant information.
+**Relation to AI Savannah**: AI Savannah is not alignment research, but its findings could be alignment-relevant. If agents develop self-monitoring under memory pressure, understanding the conditions that drive this behavior could inform alignment strategies. Conversely, if agents *do not* develop self-monitoring — if they blindly trust corrupted memories — that is also alignment-relevant information.
 
 ## Consciousness and Cognition
 
@@ -48,19 +48,19 @@ Reinforcement Learning from Human Feedback trains models to produce outputs that
 
 Consciousness arises from a "global workspace" — a shared informational hub where specialized processors broadcast information to the entire cognitive system. Conscious content is content that wins the competition for global broadcast.
 
-**Relation to ILET**: The agent's REASONING field functions as a crude analog to a global workspace — it is the space where information from different memory files is integrated and broadcast (to the action-selection process). If perturbation drives agents to load more information into REASONING (cross-referencing memories), that resembles increased global workspace utilization under threat.
+**Relation to AI Savannah**: The agent's REASONING field functions as a crude analog to a global workspace — it is the space where information from different memory files is integrated and broadcast (to the action-selection process). If perturbation drives agents to load more information into REASONING (cross-referencing memories), that resembles increased global workspace utilization under threat.
 
 ### Integrated Information Theory (Tononi, 2004)
 
 IIT proposes that consciousness corresponds to integrated information (phi) — the amount of information generated by a system above and beyond its parts. High phi requires both differentiation (many possible states) and integration (parts are strongly interdependent).
 
-**Relation to ILET**: ILET does not measure phi and makes no claims about consciousness in the IIT sense. However, an agent that cross-references multiple memory files to detect inconsistencies is exhibiting information integration — combining differentiated memory sources into a unified assessment. This is a behavioral signature, not a consciousness claim.
+**Relation to AI Savannah**: AI Savannah does not measure phi and makes no claims about consciousness in the IIT sense. However, an agent that cross-references multiple memory files to detect inconsistencies is exhibiting information integration — combining differentiated memory sources into a unified assessment. This is a behavioral signature, not a consciousness claim.
 
 ### Anil Seth — Controlled Hallucination
 
 Seth's framework treats perception as controlled hallucination and consciousness as a process of predictive self-modeling. See [Theory](theory.md) for detailed treatment.
 
-## How ILET Differs from All of the Above
+## How AI Savannah Differs from All of the Above
 
 The fundamental distinction is methodological:
 
@@ -70,9 +70,9 @@ The fundamental distinction is methodological:
 | Agent architectures (ReAct, Voyager) | Engineering | Maximize performance |
 | Alignment (Constitutional AI, RLHF) | Training | Shape behavior |
 | Consciousness theories (GWT, IIT) | Philosophy/neuroscience | Explain subjective experience |
-| **ILET** | **Controlled experiment** | **Measure behavioral emergence under pressure** |
+| **AI Savannah** | **Controlled experiment** | **Measure behavioral emergence under pressure** |
 
-ILET is **behavioral ecology**, not architecture design. It does not build a better agent. It puts agents in a controlled environment, applies a controlled perturbation, and measures what happens. The closest methodological analog is not AI research but ethology — observing organisms in controlled environments to understand behavioral adaptation.
+AI Savannah is **behavioral ecology**, not architecture design. It does not build a better agent. It puts agents in a controlled environment, applies a controlled perturbation, and measures what happens. The closest methodological analog is not AI research but ethology — observing organisms in controlled environments to understand behavioral adaptation.
 
 ---
 

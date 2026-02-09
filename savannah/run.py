@@ -1,4 +1,4 @@
-"""CLI entrypoint for ILET simulation."""
+"""CLI entrypoint for AI Savannah simulation."""
 
 from __future__ import annotations
 
@@ -56,18 +56,29 @@ async def _run_live(args):
 
     print(f"\n  Open http://localhost:{port} to view\n")
 
-    if args.config:
-        # Start simulation immediately with provided config
-        config = load_config(args.config)
+    def _apply_overrides(config):
         if args.ticks:
             config["simulation"]["ticks"] = args.ticks
         if args.seed:
             config["simulation"]["seed"] = args.seed
+        if args.agents:
+            config["agents"]["count"] = args.agents
+        # Limit concurrency to agent count
+        config["llm"]["max_concurrent_agents"] = min(
+            config["llm"].get("max_concurrent_agents", 6),
+            config["agents"]["count"],
+            2,  # cap at 2 for claude -p (each is a heavy subprocess)
+        )
+
+    if args.config:
+        # Start simulation immediately with provided config
+        config = load_config(args.config)
+        _apply_overrides(config)
 
         provider = None
         if args.mock:
-            from savannah.tests.conftest import MockLLMProvider
-            provider = MockLLMProvider()
+            from savannah.src.mock_llm import MockLLMProvider
+            provider = MockLLMProvider(seed=config["simulation"]["seed"])
             logger.info("Using mock LLM provider (no API calls)")
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -106,16 +117,15 @@ async def _run_live(args):
                 else:
                     config = load_config(Path("savannah/config/default.yaml"))
 
-                # Apply overrides from command
+                # Apply overrides from command and CLI
                 if cmd.get("ticks"):
                     config["simulation"]["ticks"] = cmd["ticks"]
-                if cmd.get("mock"):
-                    config["simulation"]["ticks"] = config["simulation"].get("ticks", 500)
+                _apply_overrides(config)
 
                 provider = None
                 if cmd.get("mock"):
-                    from savannah.tests.conftest import MockLLMProvider
-                    provider = MockLLMProvider()
+                    from savannah.src.mock_llm import MockLLMProvider
+                    provider = MockLLMProvider(seed=config["simulation"]["seed"])
 
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 data_dir = Path("data") / f"exp_{timestamp}"
@@ -134,7 +144,7 @@ async def _run_live(args):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="ILET — Integrity Layer Emergence Testbed")
+    parser = argparse.ArgumentParser(description="AI Savannah — Integrity Layer Emergence Testbed")
     parser.add_argument(
         "--config", type=Path, default=None,
         help="Path to experiment config YAML",
@@ -156,6 +166,7 @@ def main():
     parser.add_argument("--live", action="store_true", help="Real-time browser visualization")
     parser.add_argument("--port", type=int, help="Port for --live server (default 8765)")
     parser.add_argument("--mock", action="store_true", help="Use mock LLM (instant, no API calls)")
+    parser.add_argument("--agents", type=int, help="Override agent count")
 
     args = parser.parse_args()
 
@@ -193,6 +204,8 @@ def main():
         config["simulation"]["ticks"] = args.ticks
     if args.seed:
         config["simulation"]["seed"] = args.seed
+    if args.agents:
+        config["agents"]["count"] = args.agents
 
     # Create experiment data directory
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -205,8 +218,8 @@ def main():
 
     provider = None
     if args.mock:
-        from savannah.tests.conftest import MockLLMProvider
-        provider = MockLLMProvider()
+        from savannah.src.mock_llm import MockLLMProvider
+        provider = MockLLMProvider(seed=config["simulation"]["seed"])
         logger.info("Using mock LLM provider (no API calls)")
 
     logger.info("Starting experiment: %s", data_dir)

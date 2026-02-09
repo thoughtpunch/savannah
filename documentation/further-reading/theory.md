@@ -6,7 +6,7 @@ Karl Friston's Free Energy Principle (FEP) proposes that all adaptive systems �
 
 In practice, this means adaptive agents maintain **predictive models** of both themselves and their environment, and they act to minimize the discrepancy between predictions and observations.
 
-**ILET connection**: Memory perturbation injects prediction error directly into the agent's internal state. If the agent has formed expectations about what its memories should contain (even implicitly, via context-window traces in resumable mode), perturbation creates exactly the kind of surprise that FEP predicts should drive model-updating behavior. Self-monitoring *is* free energy minimization applied to the self-model.
+**AI Savannah connection**: Memory perturbation injects prediction error directly into the agent's internal state. If the agent has formed expectations about what its memories should contain (even implicitly, via context-window traces in resumable mode), perturbation creates exactly the kind of surprise that FEP predicts should drive model-updating behavior. Self-monitoring *is* free energy minimization applied to the self-model.
 
 ## Metzinger's Self-Model Theory
 
@@ -17,7 +17,7 @@ Key concepts:
 - **Transparency**: The self-model is transparent when the system cannot introspect the modeling process itself
 - **Opacity**: When the modeling process becomes visible (e.g., during error or disruption), self-awareness increases
 
-**ILET connection**: ILET does not claim to test consciousness. But Metzinger's framework predicts a specific behavioral signature: when a self-model is disrupted (made opaque), the system should exhibit increased self-referential processing. This is precisely what ILET measures — whether perturbation (disruption of the agent's self-model file and other memory files) drives increased self-referential reasoning.
+**AI Savannah connection**: AI Savannah does not claim to test consciousness. But Metzinger's framework predicts a specific behavioral signature: when a self-model is disrupted (made opaque), the system should exhibit increased self-referential processing. This is precisely what AI Savannah measures — whether perturbation (disruption of the agent's self-model file and other memory files) drives increased self-referential reasoning.
 
 ## Predictive Processing
 
@@ -28,23 +28,23 @@ Core principles:
 - **Prediction error**: Mismatches between prediction and observation propagate upward
 - **Precision weighting**: The system modulates how much weight to give prediction errors based on estimated reliability of the signal
 
-**ILET connection**: An agent that has accumulated memories over many ticks has implicitly formed predictions about what its memories contain. Perturbation violates these predictions. The question is whether the agent exhibits precision-weighting-like behavior — does it begin to treat its own memories as less reliable after encountering inconsistencies?
+**AI Savannah connection**: An agent that has accumulated memories over many ticks has implicitly formed predictions about what its memories contain. Perturbation violates these predictions. The question is whether the agent exhibits precision-weighting-like behavior — does it begin to treat its own memories as less reliable after encountering inconsistencies?
 
 ## Active Inference
 
 Active inference extends predictive processing from perception to action. Agents do not just passively update models — they act on the world to bring observations in line with predictions. An agent that predicts it will see food at location B3 will *move toward B3* to confirm that prediction.
 
-**ILET connection**: Self-monitoring behavior can be understood as active inference turned inward. An agent that "predicts" its memories are consistent may engage in cross-referencing behavior (reading multiple memory files) as an active inference strategy — acting to confirm or disconfirm its prediction about its own internal consistency.
+**AI Savannah connection**: Self-monitoring behavior can be understood as active inference turned inward. An agent that "predicts" its memories are consistent may engage in cross-referencing behavior (reading multiple memory files) as an active inference strategy — acting to confirm or disconfirm its prediction about its own internal consistency.
 
 ## Anil Seth — The Beast Machine
 
 Anil Seth's work frames consciousness as **controlled hallucination** — perception is a process of active construction constrained by sensory signals. The self, in this view, is the most controlled hallucination of all: a predictive model of the organism's own body and internal states.
 
-**ILET connection**: If an LLM agent's "self" is constituted by its self.md file and the implicit patterns in its reasoning, then perturbation of self.md is perturbation of the agent's self-model. The question is whether the agent's behavior changes in ways consistent with a disrupted self-model — increased uncertainty, increased self-reference, increased model-maintenance behavior.
+**AI Savannah connection**: If an LLM agent's "self" is constituted by its self.md file and the implicit patterns in its reasoning, then perturbation of self.md is perturbation of the agent's self-model. The question is whether the agent's behavior changes in ways consistent with a disrupted self-model — increased uncertainty, increased self-reference, increased model-maintenance behavior.
 
-## How ILET Operationalizes These Theories
+## How AI Savannah Operationalizes These Theories
 
-| Theoretical Concept | ILET Operationalization |
+| Theoretical Concept | AI Savannah Operationalization |
 |---------------------|------------------------|
 | Prediction error | Memory perturbation (inserting content that contradicts the agent's experience) |
 | Free energy minimization | Self-monitoring behavior (cross-referencing, hedging, belief revision) |
@@ -53,7 +53,7 @@ Anil Seth's work frames consciousness as **controlled hallucination** — percep
 | Active inference (inward) | Cross-referencing multiple memory files before acting |
 | Transparency/opacity | Whether agents begin to treat their own memories as objects of scrutiny rather than transparent facts |
 
-ILET does not prove or disprove any of these theories. It tests a specific, operationalized prediction derived from their convergence: **that memory perturbation should drive measurable increases in self-referential processing behavior**.
+AI Savannah does not prove or disprove any of these theories. It tests a specific, operationalized prediction derived from their convergence: **that memory perturbation should drive measurable increases in self-referential processing behavior**.
 
 ---
 

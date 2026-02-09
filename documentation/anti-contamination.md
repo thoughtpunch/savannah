@@ -1,6 +1,6 @@
 # Anti-Contamination Protocol
 
-Experimental controls to keep ILET results scientifically meaningful. Training contamination -- where LLM agents produce self-referential language simply because they have been trained on human text describing inner states -- is the primary threat to validity.
+Experimental controls to keep AI Savannah results scientifically meaningful. Training contamination -- where LLM agents produce self-referential language simply because they have been trained on human text describing inner states -- is the primary threat to validity.
 
 ## Prompt Hygiene Rules
 

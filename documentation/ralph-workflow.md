@@ -1,6 +1,6 @@
 # Ralph & Beads Workflow
 
-Ralph is the autonomous agent loop that develops ILET. It combines Claude Code for coding, Beads for persistent issue tracking, and a bash script for orchestration.
+Ralph is the autonomous agent loop that develops AI Savannah. It combines Claude Code for coding, Beads for persistent issue tracking, and a bash script for orchestration.
 
 ## Architecture
 
@@ -98,7 +98,7 @@ Two CLAUDE.md files teach Claude how to behave:
 ### Project CLAUDE.md (root)
 
 Located at `/Users/danielbarrett/sites/savannah/CLAUDE.md`. Teaches Claude about:
-- The project (what ILET is, key constraints)
+- The project (what AI Savannah is, key constraints)
 - Architecture (directory layout, key modules)
 - Development commands (test, lint, run)
 - Conventions (Python 3.12, asyncio, YAML config, anti-contamination)

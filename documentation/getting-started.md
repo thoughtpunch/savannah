@@ -1,6 +1,6 @@
 # Getting Started
 
-How to set up and run your first ILET simulation.
+How to set up and run your first AI Savannah simulation.
 
 ## Quick Start
 

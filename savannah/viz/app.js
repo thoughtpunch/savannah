@@ -1,5 +1,5 @@
 /**
- * ILET Savannah Viewer — Canvas-based grid renderer + timeline control.
+ * AI Savannah Savannah Viewer — Canvas-based grid renderer + timeline control.
  * Reads tick snapshot JSON files and renders the world state.
  *
  * URL params:
