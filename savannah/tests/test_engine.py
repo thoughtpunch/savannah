@@ -10,7 +10,6 @@ from savannah.src.engine import Engine
 from savannah.src.world import FoodSource
 from savannah.tests.conftest import MockLLMProvider
 
-
 # ── Fixtures ────────────────────────────────────────────────────────
 
 

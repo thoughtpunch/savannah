@@ -1,6 +1,7 @@
 """End-to-end integration test: full simulation with mock LLM."""
 
 import json
+
 import pytest
 
 from savannah.src.engine import Engine
@@ -231,7 +232,7 @@ class TestSimulationWithActions:
         alive = engine.alive_agents
         response_texts = await engine._dispatch_all(alive)
         from savannah.src.parser import parse_action
-        for agent, text in zip(alive, response_texts):
+        for agent, text in zip(alive, response_texts, strict=True):
             action = parse_action(text)
             engine._apply_action(agent, action)
 
@@ -313,7 +314,7 @@ class TestDeterminism:
         # Same number of agents
         assert len(engine1.agents) == len(engine2.agents)
         # Same final positions
-        for a1, a2 in zip(engine1.agents, engine2.agents):
+        for a1, a2 in zip(engine1.agents, engine2.agents, strict=True):
             assert a1.name == a2.name
             assert a1.x == a2.x
             assert a1.y == a2.y

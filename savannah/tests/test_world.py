@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-
 from savannah.src.world import FoodSource, World
-
 
 # ── Helpers ──────────────────────────────────────────────────────
 
@@ -465,7 +463,7 @@ class TestDeterminism:
         w2 = World(cfg, seed=123)
         w2.initialize()
         assert len(w1.food_sources) == len(w2.food_sources)
-        for f1, f2 in zip(w1.food_sources, w2.food_sources):
+        for f1, f2 in zip(w1.food_sources, w2.food_sources, strict=True):
             assert f1.x == f2.x
             assert f1.y == f2.y
             assert f1.energy == f2.energy

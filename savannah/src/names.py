@@ -46,5 +46,5 @@ def generate_names(count: int, seed: int = 42) -> list[str]:
             if len(names) >= count:
                 return sorted(names)[:count]
 
-    # Should never reach here with 40×64 = 2560 combinations
+    # Should never reach here with 40x64 = 2560 combinations
     raise ValueError(f"Cannot generate {count} unique names")

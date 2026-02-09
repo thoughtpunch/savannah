@@ -60,10 +60,11 @@ class World:
             self._spawn_food()
 
         # Stochastic spawning above minimum
-        if len(self.food_sources) < max_sources:
-            # Approximate: check spawn_rate against a single roll per tick
-            if self.rng.random() < self.food_config["spawn_rate"] * self.size * self.size:
-                self._spawn_food()
+        if (
+            len(self.food_sources) < max_sources
+            and self.rng.random() < self.food_config["spawn_rate"] * self.size * self.size
+        ):
+            self._spawn_food()
 
         # Decay (Phase 2+)
         decay = self.food_config.get("decay_rate", 0)

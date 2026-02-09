@@ -1,4 +1,4 @@
-"""Statistical analysis scripts for ILET experiments.
+"""Statistical analysis scripts for AI Savannah experiments.
 
 Uses only stdlib (csv, json) by default. If scipy is available, adds
 optional ANOVA / Mann-Whitney U tests.
@@ -14,7 +14,6 @@ import json
 import sys
 from collections import defaultdict
 from pathlib import Path
-
 
 # ── Data loading ─────────────────────────────────────────────────
 

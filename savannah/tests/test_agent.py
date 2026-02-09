@@ -1,6 +1,7 @@
 """Tests for Agent state management, file I/O, and prompt construction."""
 
 import json
+
 import pytest
 
 from savannah.src.agent import Agent

@@ -1,4 +1,4 @@
-"""Shared test fixtures for ILET simulation tests."""
+"""Shared test fixtures for AI Savannah simulation tests."""
 
 from __future__ import annotations
 
@@ -11,7 +11,6 @@ import yaml
 from savannah.src.agent import Agent
 from savannah.src.llm import LLMProvider, LLMResponse
 from savannah.src.world import World
-
 
 # ── Config fixtures ─────────────────────────────────────────────
 

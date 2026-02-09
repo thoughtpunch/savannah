@@ -5,9 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-
-from savannah.src.inspect_cmd import inspect, _find_nearest_snapshot
-
+from savannah.src.inspect_cmd import _find_nearest_snapshot, inspect
 
 # ── Helpers ──────────────────────────────────────────────────────
 

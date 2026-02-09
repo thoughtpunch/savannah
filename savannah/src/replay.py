@@ -67,9 +67,8 @@ def replay(
         tick_num = snapshot["tick"]
 
         # Apply tick range filter
-        if tick_range is not None:
-            if tick_num < tick_range[0] or tick_num > tick_range[1]:
-                continue
+        if tick_range is not None and (tick_num < tick_range[0] or tick_num > tick_range[1]):
+            continue
 
         # Compute summary stats
         agents = snapshot.get("agents", [])

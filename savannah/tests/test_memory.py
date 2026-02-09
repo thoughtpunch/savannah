@@ -3,17 +3,17 @@
 import pytest
 
 from savannah.src.memory import (
-    recall,
-    remember,
-    get_episodic_entries,
-    read_memory_file,
-    write_memory_file,
-    build_compaction_prompt,
-    parse_compaction_response,
-    apply_compaction,
-    _tokenize,
     _bm25_score,
     _load_all_chunks,
+    _tokenize,
+    apply_compaction,
+    build_compaction_prompt,
+    get_episodic_entries,
+    parse_compaction_response,
+    read_memory_file,
+    recall,
+    remember,
+    write_memory_file,
 )
 
 

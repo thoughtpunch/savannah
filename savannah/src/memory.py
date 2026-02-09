@@ -209,7 +209,7 @@ def _bm25_score(
                 df[qt] += 1
 
     results = []
-    for chunk, tokens in zip(chunks, chunk_tokens):
+    for chunk, tokens in zip(chunks, chunk_tokens, strict=True):
         tf = Counter(tokens)
         dl = len(tokens)
         score = 0.0

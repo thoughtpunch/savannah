@@ -8,16 +8,15 @@ import json
 import pytest
 
 from savannah.analysis.analyze import (
+    _cast_row,
     load_metrics,
     load_perturbations,
-    summary_stats,
     pre_post_analysis,
+    summary_stats,
     survival_analysis,
-    _cast_row,
 )
 from savannah.analysis.audit import perturbation_audit
 from savannah.analysis.biography import generate_biography
-
 
 # ── Fixtures ──────────────────────────────────────────────────────
 

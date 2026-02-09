@@ -13,7 +13,7 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-from .analyze import load_metrics, load_perturbations, _mean
+from .analyze import _mean, load_metrics, load_perturbations
 
 
 def perturbation_audit(data_dir: Path) -> str:

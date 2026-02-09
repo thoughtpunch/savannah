@@ -1,10 +1,11 @@
-"""Matplotlib visualization for ILET experiment results."""
+"""Matplotlib visualization for AI Savannah experiment results."""
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import pandas as pd
-from pathlib import Path
 
 
 def plot_energy_trajectories(data_dir: Path, output_path: Path | None = None) -> None:

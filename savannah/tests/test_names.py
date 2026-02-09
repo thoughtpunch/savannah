@@ -8,7 +8,6 @@ import pytest
 
 from savannah.src.names import ADJECTIVES, NOUNS, generate_names
 
-
 # --- Anti-contamination: no personality-implying adjectives ---
 
 # Words that imply personality, cognitive style, or emotional state.

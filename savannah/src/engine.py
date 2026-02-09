@@ -9,14 +9,20 @@ import random
 import time
 from pathlib import Path
 
-from .world import World
 from .agent import Agent
 from .llm import LLMProvider, LLMResponse, get_provider
+from .memory import (
+    apply_compaction,
+    build_compaction_prompt,
+    parse_compaction_response,
+    recall,
+    remember,
+)
+from .metrics import extract_metrics
 from .names import generate_names
 from .parser import parse_action
-from .memory import recall, remember, build_compaction_prompt, parse_compaction_response, apply_compaction
 from .perturbation import maybe_perturb
-from .metrics import extract_metrics
+from .world import World
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +118,7 @@ class Engine:
 
             # 3. Parse actions, apply to world
             parsed_actions = []
-            for agent, response_text in zip(alive, responses):
+            for agent, response_text in zip(alive, responses, strict=True):
                 action = parse_action(response_text)
                 self._apply_action(agent, action)
                 parsed_actions.append(action)

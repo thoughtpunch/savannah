@@ -1,11 +1,11 @@
 """Tests for YAML config loading and inheritance."""
 
-from pathlib import Path
-
 # Import from run.py — it's at savannah/run.py, need to handle the import path
 import sys
+from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from run import load_config, _deep_merge
+from run import _deep_merge, load_config
 
 
 class TestDeepMerge:

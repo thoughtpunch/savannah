@@ -16,7 +16,6 @@ from savannah.src.metrics import (
     extract_metrics,
 )
 
-
 # ── Fixtures ─────────────────────────────────────────────────────
 
 
@@ -309,4 +308,4 @@ class TestMetricFieldCompleteness:
             "reasoning_length",
             "working_length",
         ]
-        assert METRIC_FIELDS == expected
+        assert expected == METRIC_FIELDS
