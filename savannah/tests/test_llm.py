@@ -15,6 +15,7 @@ from savannah.src.llm import (
     ClaudeCodeProvider,
     LiteLLMProvider,
     LLMResponse,
+    TeamModeProvider,
     get_provider,
 )
 from savannah.tests.conftest import MockLLMProvider
@@ -254,3 +255,20 @@ class TestLiteLLMProvider:
     def test_custom_api_base(self):
         provider = LiteLLMProvider(config={"api_base": "http://localhost:11434"})
         assert provider.api_base == "http://localhost:11434"
+
+
+# ── TeamModeProvider ──────────────────────────────────────────────
+
+
+class TestTeamModeProvider:
+    def test_team_mode_provider_registered(self):
+        """get_provider with 'team' should return a TeamModeProvider."""
+        provider = get_provider({"provider": "team"})
+        assert isinstance(provider, TeamModeProvider)
+
+    @pytest.mark.asyncio
+    async def test_team_mode_provider_invoke_raises(self):
+        """TeamModeProvider.invoke() should raise NotImplementedError."""
+        provider = TeamModeProvider({})
+        with pytest.raises(NotImplementedError, match="Team mode"):
+            await provider.invoke("test", "haiku")
