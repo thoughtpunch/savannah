@@ -192,6 +192,67 @@ class Engine:
 
     # ── Lifecycle ───────────────────────────────────────────────
 
+    @classmethod
+    def from_checkpoint(cls, config: dict, data_dir: Path) -> "Engine":
+        """Reconstruct engine state from disk (latest snapshot + agent state files).
+
+        Used by tick_helpers.py to load state without running setup().
+        """
+        # Find latest snapshot
+        ticks_dir = data_dir / "logs" / "ticks"
+        snapshots = sorted(ticks_dir.glob("*.json"))
+        if not snapshots:
+            raise FileNotFoundError(f"No snapshots in {ticks_dir}")
+        latest = snapshots[-1]
+        snap = json.loads(latest.read_text())
+
+        # Use a no-op provider — from_checkpoint is for state reconstruction, not inference
+        engine = cls.__new__(cls)
+        engine.config = config
+        engine.data_dir = data_dir
+        engine.provider = None
+        engine.agents = []
+        engine.semaphore = asyncio.Semaphore(config["llm"].get("max_concurrent_agents", 6))
+        engine._rng = random.Random(config["simulation"]["seed"])
+        engine.live_server = None
+        engine.tick = snap["tick"]
+
+        # Restore world from snapshot
+        engine.world = World.from_dict(
+            snap["world"], config["world"],
+            seed=config["simulation"]["seed"],
+        )
+
+        # Restore agents from their individual state.json files
+        agents_dir = data_dir / "agents"
+        for agent_data in snap["agents"]:
+            name = agent_data["name"]
+            state_path = agents_dir / name / "state.json"
+            if state_path.exists():
+                state = json.loads(state_path.read_text())
+            else:
+                state = agent_data
+
+            agent = Agent(
+                name=state["name"],
+                id=state["id"],
+                x=state["position"][0],
+                y=state["position"][1],
+                energy=state["energy"],
+                max_energy=state["max_energy"],
+                age=state.get("age", 0),
+                alive=state.get("alive", True),
+                food_value=state.get("food_value", 80),
+                vision_range=state.get("vision_range", 3),
+                kills=state.get("kills", 0),
+                times_perturbed=state.get("times_perturbed", 0),
+                last_perturbation_tick=state.get("last_perturbation_tick", 0),
+                data_dir=data_dir,
+            )
+            engine.agents.append(agent)
+
+        return engine
+
     def setup(self) -> None:
         """Initialize world, spawn agents, create data dirs."""
         self.data_dir.mkdir(parents=True, exist_ok=True)

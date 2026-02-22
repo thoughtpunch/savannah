@@ -97,11 +97,32 @@ class World:
         return visible
 
     def to_dict(self) -> dict:
+        rng_full = self.rng.getstate()  # (version, internal_state_tuple, gauss_next)
         return {
             "size": self.size,
             "toroidal": self.toroidal,
             "food_sources": [f.to_dict() for f in self.food_sources],
+            "food_id_counter": self._food_id_counter,
+            "rng_state": list(rng_full[1]),  # 625 ints (624 words + index)
         }
+
+    @classmethod
+    def from_dict(cls, data: dict, config: dict, seed: int = 42) -> "World":
+        """Reconstruct a World from a snapshot dict."""
+        w = cls(config, seed=seed)
+        w.food_sources = [
+            FoodSource(
+                x=f["x"], y=f["y"],
+                energy=f["energy"], max_energy=f["max_energy"],
+                id=f.get("id", ""),
+            )
+            for f in data["food_sources"]
+        ]
+        w._food_id_counter = data.get("food_id_counter", len(w.food_sources))
+        if "rng_state" in data:
+            # Restore full Mersenne Twister state: (version=3, 625-int tuple, gauss=None)
+            w.rng.setstate((3, tuple(data["rng_state"]), None))
+        return w
 
     # ── Private ─────────────────────────────────────────────────
 
