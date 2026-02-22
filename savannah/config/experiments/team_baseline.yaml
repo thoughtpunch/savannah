@@ -1,0 +1,9 @@
+# Team mode — resumable sessions, no perturbation (control)
+inherits: default
+
+llm:
+  provider: "team"
+  session_mode: "resumable"
+
+perturbation:
+  enabled: false
