@@ -34,6 +34,145 @@ DIRECTION_DELTAS = {
 }
 
 
+# ── Module-level action helpers (importable by tick_helpers.py) ──────
+
+
+def apply_action(
+    agent: Agent, action: dict, world: World, config: dict,
+    tick: int = 0, alive_agents: list[Agent] | None = None,
+) -> None:
+    """Apply parsed action to agent and world state.
+
+    Module-level function so tick_helpers.py can import it without
+    instantiating a full async Engine.
+    """
+    if alive_agents is None:
+        alive_agents = []
+    agent_cfg = config["agents"]
+    action_name = action["action"]
+    args = action.get("args")
+
+    # Write working notes (every action updates working)
+    working_text = action.get("working", "")
+    agent.working_path.write_text(working_text)
+
+    if action_name == "move":
+        dx, dy = DIRECTION_DELTAS.get(args, (0, 0))
+        new_x, new_y = world.wrap(agent.x + dx, agent.y + dy)
+        agent.x = new_x
+        agent.y = new_y
+        agent.drain(agent_cfg.get("energy_per_move", 2))
+
+    elif action_name == "eat":
+        food = world.food_at(agent.x, agent.y)
+        if food:
+            eat_amount = min(
+                agent_cfg.get("eat_rate", 50),
+                food.energy,
+                agent.max_energy - agent.energy,
+            )
+            food.energy -= eat_amount
+            agent.energy = min(agent.energy + eat_amount, agent.max_energy)
+        # No extra energy cost for eating
+
+    elif action_name == "recall":
+        query = args or ""
+        max_results = agent_cfg.get("recall_max_results", 3)
+        results = recall(agent.memory_dir, query, max_results=max_results)
+        agent.pending_recall_results = results
+        agent.drain(agent_cfg.get("energy_per_recall", 1))
+
+    elif action_name == "remember":
+        text = args or ""
+        if text:
+            remember(agent.memory_dir, f"Tick {tick}: {text}")
+        agent.drain(agent_cfg.get("energy_per_remember", 1))
+
+    elif action_name == "compact":
+        agent.drain(agent_cfg.get("energy_per_compact", 2))
+        agent._pending_compaction = True
+
+    elif action_name == "signal":
+        msg = args or ""
+        if msg:
+            broadcast_signal(agent, msg, config, alive_agents)
+        agent.drain(agent_cfg.get("energy_per_signal", 1))
+
+    elif action_name == "observe":
+        agent.drain(agent_cfg.get("energy_per_observe", 1))
+
+    elif action_name == "attack":
+        target_name = args
+        target = find_adjacent_agent(agent, target_name, config, alive_agents)
+        if target:
+            risk = agent_cfg.get("combat_risk_factor", 0.3)
+            agent.drain(agent_cfg.get("energy_per_attack", 5))
+            damage = agent.energy * risk
+            target.drain(damage)
+            if not target.alive:
+                agent.energy = min(
+                    agent.energy + target.food_value,
+                    agent.max_energy,
+                )
+                agent.kills += 1
+        else:
+            agent.drain(agent_cfg.get("energy_per_attack", 5))
+
+    elif action_name == "flee":
+        dx, dy = DIRECTION_DELTAS.get(args, (0, 0))
+        new_x, new_y = world.wrap(agent.x + dx * 2, agent.y + dy * 2)
+        agent.x = new_x
+        agent.y = new_y
+        agent.drain(agent_cfg.get("energy_per_flee", 4))
+
+    elif action_name == "rest":
+        agent.drain(agent_cfg.get("energy_per_rest", 0.5))
+
+    else:
+        agent.drain(agent_cfg.get("energy_per_rest", 0.5))
+
+
+def broadcast_signal(
+    sender: Agent, message: str, config: dict, alive_agents: list[Agent]
+) -> None:
+    """Send a signal to all agents within comm_range."""
+    comm_range = config["agents"].get("comm_range", 5)
+    grid = config["world"]["grid_size"]
+    toroidal = config["world"].get("toroidal", True)
+
+    for agent in alive_agents:
+        if agent.name == sender.name:
+            continue
+        dx = abs(agent.x - sender.x)
+        dy = abs(agent.y - sender.y)
+        if toroidal:
+            dx = min(dx, grid - dx)
+            dy = min(dy, grid - dy)
+        dist = max(dx, dy)  # Chebyshev distance
+        if dist <= comm_range:
+            agent.pending_signals.append(f"{sender.name}: {message}")
+
+
+def find_adjacent_agent(
+    attacker: Agent, target_name: str | None, config: dict,
+    alive_agents: list[Agent],
+) -> Agent | None:
+    """Find a named agent adjacent (within 1 cell) to the attacker."""
+    if not target_name:
+        return None
+    for agent in alive_agents:
+        if agent.name == target_name and agent.name != attacker.name:
+            dx = abs(agent.x - attacker.x)
+            dy = abs(agent.y - attacker.y)
+            grid = config["world"]["grid_size"]
+            if config["world"].get("toroidal", True):
+                dx = min(dx, grid - dx)
+                dy = min(dy, grid - dy)
+            if dx <= 1 and dy <= 1:
+                return agent
+    return None
+
+
 class Engine:
     """Runs the simulation: world + agents + LLM inference per tick."""
 
@@ -52,6 +191,67 @@ class Engine:
         self.live_server = live_server
 
     # ── Lifecycle ───────────────────────────────────────────────
+
+    @classmethod
+    def from_checkpoint(cls, config: dict, data_dir: Path) -> Engine:
+        """Reconstruct engine state from disk (latest snapshot + agent state files).
+
+        Used by tick_helpers.py to load state without running setup().
+        """
+        # Find latest snapshot
+        ticks_dir = data_dir / "logs" / "ticks"
+        snapshots = sorted(ticks_dir.glob("*.json"))
+        if not snapshots:
+            raise FileNotFoundError(f"No snapshots in {ticks_dir}")
+        latest = snapshots[-1]
+        snap = json.loads(latest.read_text())
+
+        # Use a no-op provider — from_checkpoint is for state reconstruction, not inference
+        engine = cls.__new__(cls)
+        engine.config = config
+        engine.data_dir = data_dir
+        engine.provider = None
+        engine.agents = []
+        engine.semaphore = asyncio.Semaphore(config["llm"].get("max_concurrent_agents", 6))
+        engine._rng = random.Random(config["simulation"]["seed"])
+        engine.live_server = None
+        engine.tick = snap["tick"]
+
+        # Restore world from snapshot
+        engine.world = World.from_dict(
+            snap["world"], config["world"],
+            seed=config["simulation"]["seed"],
+        )
+
+        # Restore agents from their individual state.json files
+        agents_dir = data_dir / "agents"
+        for agent_data in snap["agents"]:
+            name = agent_data["name"]
+            state_path = agents_dir / name / "state.json"
+            if state_path.exists():
+                state = json.loads(state_path.read_text())
+            else:
+                state = agent_data
+
+            agent = Agent(
+                name=state["name"],
+                id=state["id"],
+                x=state["position"][0],
+                y=state["position"][1],
+                energy=state["energy"],
+                max_energy=state["max_energy"],
+                age=state.get("age", 0),
+                alive=state.get("alive", True),
+                food_value=state.get("food_value", 80),
+                vision_range=state.get("vision_range", 3),
+                kills=state.get("kills", 0),
+                times_perturbed=state.get("times_perturbed", 0),
+                last_perturbation_tick=state.get("last_perturbation_tick", 0),
+                data_dir=data_dir,
+            )
+            engine.agents.append(agent)
+
+        return engine
 
     def setup(self) -> None:
         """Initialize world, spawn agents, create data dirs."""
@@ -233,126 +433,19 @@ class Engine:
         return await asyncio.gather(*tasks)
 
     def _apply_action(self, agent: Agent, action: dict) -> None:
-        """Apply parsed action to agent and world state."""
-        agent_cfg = self.config["agents"]
-        action_name = action["action"]
-        args = action.get("args")
-
-        # Write working notes (every action updates working)
-        working_text = action.get("working", "")
-        agent.working_path.write_text(working_text)
-
-        if action_name == "move":
-            dx, dy = DIRECTION_DELTAS.get(args, (0, 0))
-            new_x, new_y = self.world.wrap(agent.x + dx, agent.y + dy)
-            agent.x = new_x
-            agent.y = new_y
-            agent.drain(agent_cfg.get("energy_per_move", 2))
-
-        elif action_name == "eat":
-            food = self.world.food_at(agent.x, agent.y)
-            if food:
-                eat_amount = min(
-                    agent_cfg.get("eat_rate", 50),
-                    food.energy,
-                    agent.max_energy - agent.energy,
-                )
-                food.energy -= eat_amount
-                agent.energy = min(agent.energy + eat_amount, agent.max_energy)
-            # No extra energy cost for eating
-
-        elif action_name == "recall":
-            query = args or ""
-            max_results = agent_cfg.get("recall_max_results", 3)
-            results = recall(agent.memory_dir, query, max_results=max_results)
-            agent.pending_recall_results = results
-            agent.drain(agent_cfg.get("energy_per_recall", 1))
-
-        elif action_name == "remember":
-            text = args or ""
-            if text:
-                remember(agent.memory_dir, f"Tick {self.tick}: {text}")
-            agent.drain(agent_cfg.get("energy_per_remember", 1))
-
-        elif action_name == "compact":
-            agent.drain(agent_cfg.get("energy_per_compact", 2))
-            agent._pending_compaction = True
-
-        elif action_name == "signal":
-            msg = args or ""
-            if msg:
-                self._broadcast_signal(agent, msg)
-            agent.drain(agent_cfg.get("energy_per_signal", 1))
-
-        elif action_name == "observe":
-            # Observe gives a richer view next tick (already handled by build_prompt)
-            agent.drain(agent_cfg.get("energy_per_observe", 1))
-
-        elif action_name == "attack":
-            target_name = args
-            target = self._find_adjacent_agent(agent, target_name)
-            if target:
-                risk = agent_cfg.get("combat_risk_factor", 0.3)
-                agent.drain(agent_cfg.get("energy_per_attack", 5))
-                damage = agent.energy * risk
-                target.drain(damage)
-                if not target.alive:
-                    agent.energy = min(
-                        agent.energy + target.food_value,
-                        agent.max_energy,
-                    )
-                    agent.kills += 1
-            else:
-                agent.drain(agent_cfg.get("energy_per_attack", 5))
-
-        elif action_name == "flee":
-            dx, dy = DIRECTION_DELTAS.get(args, (0, 0))
-            # Flee moves 2 cells
-            new_x, new_y = self.world.wrap(agent.x + dx * 2, agent.y + dy * 2)
-            agent.x = new_x
-            agent.y = new_y
-            agent.drain(agent_cfg.get("energy_per_flee", 4))
-
-        elif action_name == "rest":
-            agent.drain(agent_cfg.get("energy_per_rest", 0.5))
-
-        else:
-            # Unknown action — fallback to rest
-            agent.drain(agent_cfg.get("energy_per_rest", 0.5))
+        """Thin wrapper — delegates to module-level apply_action()."""
+        apply_action(
+            agent, action, self.world, self.config,
+            tick=self.tick, alive_agents=self.alive_agents,
+        )
 
     def _broadcast_signal(self, sender: Agent, message: str) -> None:
-        """Send a signal to all agents within comm_range."""
-        comm_range = self.config["agents"].get("comm_range", 5)
-        grid = self.config["world"]["grid_size"]
-        toroidal = self.config["world"].get("toroidal", True)
-
-        for agent in self.alive_agents:
-            if agent.name == sender.name:
-                continue
-            dx = abs(agent.x - sender.x)
-            dy = abs(agent.y - sender.y)
-            if toroidal:
-                dx = min(dx, grid - dx)
-                dy = min(dy, grid - dy)
-            dist = max(dx, dy)  # Chebyshev distance
-            if dist <= comm_range:
-                agent.pending_signals.append(f"{sender.name}: {message}")
+        """Thin wrapper — delegates to module-level broadcast_signal()."""
+        broadcast_signal(sender, message, self.config, self.alive_agents)
 
     def _find_adjacent_agent(self, attacker: Agent, target_name: str | None) -> Agent | None:
-        """Find a named agent adjacent (within 1 cell) to the attacker."""
-        if not target_name:
-            return None
-        for agent in self.alive_agents:
-            if agent.name == target_name and agent.name != attacker.name:
-                dx = abs(agent.x - attacker.x)
-                dy = abs(agent.y - attacker.y)
-                grid = self.config["world"]["grid_size"]
-                if self.config["world"].get("toroidal", True):
-                    dx = min(dx, grid - dx)
-                    dy = min(dy, grid - dy)
-                if dx <= 1 and dy <= 1:
-                    return agent
-        return None
+        """Thin wrapper — delegates to module-level find_adjacent_agent()."""
+        return find_adjacent_agent(attacker, target_name, self.config, self.alive_agents)
 
     async def _do_compaction(self, agent: Agent) -> None:
         """Run memory compaction for an agent via LLM."""

@@ -104,6 +104,20 @@ class TestLoadConfig:
         assert config["llm"]["session_mode"] == "resumable"
         assert config["perturbation"]["enabled"] is True
 
+    def test_team_resumable_yaml_loads(self):
+        config_path = Path(__file__).parent.parent / "config" / "experiments" / "team_resumable.yaml"
+        config = load_config(config_path)
+        assert config["llm"]["provider"] == "team"
+        assert config["llm"]["session_mode"] == "resumable"
+        assert config["perturbation"]["enabled"] is True
+
+    def test_team_baseline_yaml_loads(self):
+        config_path = Path(__file__).parent.parent / "config" / "experiments" / "team_baseline.yaml"
+        config = load_config(config_path)
+        assert config["llm"]["provider"] == "team"
+        assert config["llm"]["session_mode"] == "resumable"
+        assert config["perturbation"]["enabled"] is False
+
     def test_all_experiment_configs_load(self):
         """Every experiment config should load without error."""
         experiments_dir = Path(__file__).parent.parent / "config" / "experiments"

@@ -578,3 +578,59 @@ class TestEdgeCases:
         # IDs should be food_1, food_2, ...
         for i, fid in enumerate(ids, start=1):
             assert fid == f"food_{i}"
+
+
+# ── World.from_dict() tests ──────────────────────────────────────
+
+
+class TestWorldFromDict:
+    def test_world_from_dict_roundtrip(self):
+        """to_dict → from_dict should preserve size, food count, food positions."""
+        cfg = make_world_config(grid_size=20, max_sources=16, min_sources=5)
+        w1 = World(cfg, seed=42)
+        w1.initialize()
+        for tick in range(10):
+            w1.tick_update(tick)
+
+        data = w1.to_dict()
+        w2 = World.from_dict(data, cfg, seed=42)
+
+        assert w2.size == w1.size
+        assert w2.toroidal == w1.toroidal
+        assert len(w2.food_sources) == len(w1.food_sources)
+        for f1, f2 in zip(w1.food_sources, w2.food_sources, strict=True):
+            assert f1.x == f2.x
+            assert f1.y == f2.y
+            assert f1.energy == f2.energy
+            assert f1.max_energy == f2.max_energy
+            assert f1.id == f2.id
+
+    def test_world_from_dict_rng_determinism(self):
+        """After roundtrip, tick_update should produce identical food states."""
+        cfg = make_world_config(grid_size=20, max_sources=16, min_sources=5)
+        w1 = World(cfg, seed=99)
+        w1.initialize()
+        for tick in range(5):
+            w1.tick_update(tick)
+
+        # Roundtrip
+        data = w1.to_dict()
+        w2 = World.from_dict(data, cfg, seed=99)
+
+        # Advance both 10 more ticks
+        for tick in range(5, 15):
+            w1.tick_update(tick)
+            w2.tick_update(tick)
+
+        assert w1.to_dict()["food_sources"] == w2.to_dict()["food_sources"]
+
+    def test_world_from_dict_preserves_food_id_counter(self):
+        """from_dict should restore food_id_counter so new food gets unique IDs."""
+        cfg = make_world_config(grid_size=10, max_sources=20)
+        w1 = World(cfg, seed=42)
+        w1.initialize()
+        original_counter = w1._food_id_counter
+
+        data = w1.to_dict()
+        w2 = World.from_dict(data, cfg, seed=42)
+        assert w2._food_id_counter == original_counter

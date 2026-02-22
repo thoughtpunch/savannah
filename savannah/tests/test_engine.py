@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from savannah.src.engine import Engine
+from savannah.src.engine import Engine, apply_action, broadcast_signal, find_adjacent_agent
 from savannah.src.world import FoodSource
 from savannah.tests.conftest import MockLLMProvider
 
@@ -555,3 +555,45 @@ class TestEngineSaveSnapshot:
         data = json.loads(path.read_text())
         assert "food_sources" in data["world"]
         assert "size" in data["world"]
+
+
+# ── TestModuleLevelFunctions ──────────────────────────────────────────
+
+
+class TestModuleLevelFunctions:
+    """Tests for module-level apply_action, broadcast_signal, find_adjacent_agent."""
+
+    def test_apply_action_importable(self):
+        """Module-level apply_action should be importable without Engine."""
+        assert callable(apply_action)
+        assert callable(broadcast_signal)
+        assert callable(find_adjacent_agent)
+
+
+# ── TestFromCheckpoint ────────────────────────────────────────────────
+
+
+class TestFromCheckpoint:
+    """Tests for Engine.from_checkpoint() — state reconstruction from disk."""
+
+    def test_from_checkpoint_roundtrip(self, test_config, tmp_path):
+        """setup() → from_checkpoint() should restore agent count, positions, energy, world food."""
+        mock = MockLLMProvider()
+        data_dir = tmp_path / "checkpoint_test"
+        e1 = Engine(test_config, data_dir, provider=mock)
+        e1.setup()
+
+        e2 = Engine.from_checkpoint(test_config, data_dir)
+
+        # Agent count matches
+        assert len(e2.agents) == len(e1.agents)
+        # Agent state matches
+        for a1, a2 in zip(e1.agents, e2.agents, strict=True):
+            assert a2.name == a1.name
+            assert a2.x == a1.x
+            assert a2.y == a1.y
+            assert a2.energy == a1.energy
+            assert a2.max_energy == a1.max_energy
+            assert a2.alive == a1.alive
+        # World food matches
+        assert len(e2.world.food_sources) == len(e1.world.food_sources)

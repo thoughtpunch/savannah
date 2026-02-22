@@ -360,6 +360,22 @@ class LiteLLMProvider(LLMProvider):
         return LLMResponse(text="rest")
 
 
+class TeamModeProvider(LLMProvider):
+    """Stub provider for team mode — dispatch is handled by the coordinator, not Python.
+
+    Registered as "team" in get_provider(). Raises NotImplementedError on invoke()
+    because in team mode, LLM calls go through Claude Code SendMessage, not Python.
+    """
+
+    def __init__(self, config: dict):
+        pass
+
+    async def invoke(self, prompt: str, model: str) -> LLMResponse:
+        raise NotImplementedError(
+            "Team mode: dispatch handled by coordinator, not Python engine"
+        )
+
+
 def get_provider(config: dict) -> LLMProvider:
     """Factory: return the configured LLM provider.
 
@@ -367,12 +383,14 @@ def get_provider(config: dict) -> LLMProvider:
         "claude_code"    — claude -p subprocess ($0 with Pro Max, lean mode)
         "anthropic_api"  — direct Anthropic SDK (fast, needs API key)
         "litellm"        — any provider via litellm (Anthropic, OpenAI, Ollama, etc.)
+        "team"           — stub for team mode (dispatch via coordinator)
     """
     provider_name = config.get("provider", "claude_code")
     providers = {
         "claude_code": ClaudeCodeProvider,
         "anthropic_api": AnthropicAPIProvider,
         "litellm": LiteLLMProvider,
+        "team": TeamModeProvider,
     }
     cls = providers.get(provider_name)
     if not cls:
