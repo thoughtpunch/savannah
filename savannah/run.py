@@ -143,6 +143,29 @@ async def _run_live(args):
                 await server.broadcast({"type": "status", "state": "lobby"})
 
 
+def _run_team_mode(config: dict, data_dir: Path) -> None:
+    """Set up experiment dirs and print the coordinator prompt for Claude Code team mode."""
+    from savannah.src.llm import TeamModeProvider
+
+    engine = Engine(config, data_dir, provider=TeamModeProvider(config["llm"]))
+    engine.setup()
+
+    # Load coordinator template and fill placeholders
+    template_path = Path(__file__).parent / "src" / "team_coordinator.md"
+    template = template_path.read_text()
+
+    agent_names = ", ".join(a.name for a in engine.agents)
+    coordinator_prompt = template.format(
+        data_dir=str(data_dir),
+        max_ticks=config["simulation"]["ticks"],
+        agent_names=agent_names,
+        session_mode=config["llm"].get("session_mode", "resumable"),
+    )
+
+    logger.info("Team mode: data_dir=%s, agents=%d", data_dir, len(engine.agents))
+    print(coordinator_prompt)
+
+
 def main():
     parser = argparse.ArgumentParser(description="AI Savannah — Integrity Layer Emergence Testbed")
     parser.add_argument(
@@ -167,6 +190,10 @@ def main():
     parser.add_argument("--port", type=int, help="Port for --live server (default 8765)")
     parser.add_argument("--mock", action="store_true", help="Use mock LLM (instant, no API calls)")
     parser.add_argument("--agents", type=int, help="Override agent count")
+    parser.add_argument(
+        "--mode", type=str, default="standard", choices=["standard", "team"],
+        help="Execution mode: 'standard' (Python tick loop) or 'team' (Claude Code coordinator)",
+    )
 
     args = parser.parse_args()
 
@@ -210,6 +237,11 @@ def main():
     # Create experiment data directory
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     data_dir = Path("data") / f"exp_{timestamp}"
+
+    # Handle --mode team
+    if args.mode == "team":
+        _run_team_mode(config, data_dir)
+        sys.exit(0)
 
     if args.factorial:
         logger.info("Factorial mode: axes=%s, replications=%d", args.axes, args.replications)

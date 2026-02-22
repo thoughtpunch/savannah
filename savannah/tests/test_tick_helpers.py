@@ -215,3 +215,39 @@ class TestCoordinatorTemplate:
         assert "{data_dir}" in text
         assert "{max_ticks}" in text
         assert "{agent_names}" in text
+
+
+# ── --mode team tests ─────────────────────────────────────────────────
+
+
+class TestRunTeamMode:
+    def test_run_team_mode_creates_data_dir(self, test_config, tmp_path):
+        """Team mode should create data dir with agent dirs."""
+        from savannah.run import _run_team_mode
+
+        # Override provider to team
+        cfg = {**test_config, "llm": {**test_config["llm"], "provider": "team"}}
+        data_dir = tmp_path / "team_exp"
+        _run_team_mode(cfg, data_dir)
+
+        assert data_dir.is_dir()
+        assert (data_dir / "agents").is_dir()
+        # Should have agent subdirs
+        agent_dirs = list((data_dir / "agents").iterdir())
+        assert len(agent_dirs) == cfg["agents"]["count"]
+
+    def test_run_team_mode_prompt_contains_agent_names(self, test_config, tmp_path, capsys):
+        """Coordinator prompt should contain all agent names."""
+        from savannah.run import _run_team_mode
+
+        cfg = {**test_config, "llm": {**test_config["llm"], "provider": "team"}}
+        data_dir = tmp_path / "team_names"
+        _run_team_mode(cfg, data_dir)
+
+        captured = capsys.readouterr()
+        # Read agent names from the snapshot
+        snap = json.loads((data_dir / "logs" / "ticks" / "000000.json").read_text())
+        for agent in snap["agents"]:
+            assert agent["name"] in captured.out, (
+                f"Agent {agent['name']} not found in coordinator prompt"
+            )
