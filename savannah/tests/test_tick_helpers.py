@@ -201,3 +201,17 @@ class TestSavannahAgent:
             assert word not in body_lower, (
                 f"Anti-contamination violation: '{word}' found in savannah-agent.md body"
             )
+
+
+# ── team_coordinator.md validation ────────────────────────────────────
+
+
+class TestCoordinatorTemplate:
+    TEMPLATE_PATH = Path(__file__).parent.parent / "src" / "team_coordinator.md"
+
+    def test_coordinator_template_has_placeholders(self):
+        """Coordinator template must contain all required placeholders."""
+        text = self.TEMPLATE_PATH.read_text()
+        assert "{data_dir}" in text
+        assert "{max_ticks}" in text
+        assert "{agent_names}" in text
