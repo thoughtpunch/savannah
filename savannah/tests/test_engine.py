@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from savannah.src.engine import Engine
+from savannah.src.engine import Engine, apply_action, broadcast_signal, find_adjacent_agent
 from savannah.src.world import FoodSource
 from savannah.tests.conftest import MockLLMProvider
 
@@ -555,3 +555,16 @@ class TestEngineSaveSnapshot:
         data = json.loads(path.read_text())
         assert "food_sources" in data["world"]
         assert "size" in data["world"]
+
+
+# ── TestModuleLevelFunctions ──────────────────────────────────────────
+
+
+class TestModuleLevelFunctions:
+    """Tests for module-level apply_action, broadcast_signal, find_adjacent_agent."""
+
+    def test_apply_action_importable(self):
+        """Module-level apply_action should be importable without Engine."""
+        assert callable(apply_action)
+        assert callable(broadcast_signal)
+        assert callable(find_adjacent_agent)
