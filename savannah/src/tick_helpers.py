@@ -13,7 +13,6 @@ from pathlib import Path
 
 import yaml
 
-from .agent import Agent
 from .engine import Engine, apply_action
 from .metrics import extract_metrics
 from .parser import parse_action

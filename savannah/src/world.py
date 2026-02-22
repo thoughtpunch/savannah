@@ -107,7 +107,7 @@ class World:
         }
 
     @classmethod
-    def from_dict(cls, data: dict, config: dict, seed: int = 42) -> "World":
+    def from_dict(cls, data: dict, config: dict, seed: int = 42) -> World:
         """Reconstruct a World from a snapshot dict."""
         w = cls(config, seed=seed)
         w.food_sources = [

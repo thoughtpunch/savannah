@@ -193,7 +193,7 @@ class Engine:
     # ── Lifecycle ───────────────────────────────────────────────
 
     @classmethod
-    def from_checkpoint(cls, config: dict, data_dir: Path) -> "Engine":
+    def from_checkpoint(cls, config: dict, data_dir: Path) -> Engine:
         """Reconstruct engine state from disk (latest snapshot + agent state files).
 
         Used by tick_helpers.py to load state without running setup().

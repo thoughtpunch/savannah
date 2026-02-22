@@ -53,7 +53,7 @@ class TestPrep:
         assert len(data["alive"]) > 0
         assert isinstance(data["prompts"], dict)
         assert len(data["prompts"]) == len(data["alive"])
-        for name, prompt in data["prompts"].items():
+        for _name, prompt in data["prompts"].items():
             assert isinstance(prompt, str)
             assert len(prompt) > 0
 
