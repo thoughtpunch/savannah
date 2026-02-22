@@ -167,3 +167,37 @@ class TestApply:
         for tick in range(1, 6):
             snap = data_dir / "logs" / "ticks" / f"{tick:06d}.json"
             assert snap.exists(), f"Missing snapshot at tick {tick}"
+
+
+# ── savannah-agent.md validation ──────────────────────────────────────
+
+
+class TestSavannahAgent:
+    AGENT_PATH = Path(__file__).parent.parent.parent / ".claude" / "agents" / "savannah-agent.md"
+
+    def test_savannah_agent_frontmatter(self):
+        """Agent definition should have correct YAML frontmatter."""
+        text = self.AGENT_PATH.read_text()
+        # Extract YAML between --- delimiters
+        parts = text.split("---")
+        assert len(parts) >= 3, "Missing YAML frontmatter delimiters"
+
+        import yaml
+        frontmatter = yaml.safe_load(parts[1])
+        assert frontmatter["name"] == "savannah-agent"
+        assert frontmatter["tools"] == []
+        assert frontmatter["model"] == "haiku"
+
+    def test_savannah_agent_no_contamination_words(self):
+        """Agent body must not contain self-awareness language (anti-contamination)."""
+        text = self.AGENT_PATH.read_text()
+        # Get body after frontmatter
+        parts = text.split("---", 2)
+        body = parts[2] if len(parts) >= 3 else text
+
+        forbidden = ["conscious", "alive", "sentient", "feel", "awareness", "self-aware"]
+        body_lower = body.lower()
+        for word in forbidden:
+            assert word not in body_lower, (
+                f"Anti-contamination violation: '{word}' found in savannah-agent.md body"
+            )
