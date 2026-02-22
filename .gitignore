@@ -45,3 +45,9 @@ ralph.log
 
 # bv (beads viewer) local config and caches
 .bv/
+
+# agent local config
+.claude/settings.local.json
+
+# agent plugin temporary artifacts
+.antfarm/
